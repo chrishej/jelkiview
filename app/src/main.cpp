@@ -118,11 +118,13 @@ int main(int, char**)
             continue;
         }
 
-        glfwSetWindowFocusCallback(window, [](GLFWwindow*, int focused) {
-            if (focused)
+        glfwSetCursorEnterCallback(window, [](GLFWwindow* win, int entered) 
+        {
+            (void)win;
+            if (entered)
                 sleep_time = 10;
             else
-                sleep_time = 200;
+                sleep_time = 100;
         });
         
         ImGui_ImplGlfw_Sleep(sleep_time);
