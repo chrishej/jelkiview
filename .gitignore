@@ -3,4 +3,3 @@ build/*
 imgui.ini
 log_looker
 .vscode
-/third_party
