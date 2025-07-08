@@ -1,0 +1,36 @@
+Import("env")
+
+
+# Add header path to build environment
+
+includes = [
+    '#third_party/glfw/include/',
+    '#third_party/imgui/inc', 
+    '#third_party/backends',
+    '#third_party/implot',
+    '#third_party/',  
+    '#third_party/ImGuiFileDialog/',
+    ]
+
+env.Append(CPPPATH=includes)
+
+third_party_env = env.Clone()
+
+third_party_env.Append(CXXFLAGS=['-w'])
+
+sources = [
+        '#third_party/backends/imgui_impl_glfw.cpp', 
+        '#third_party/backends/imgui_impl_opengl3.cpp',
+        '#third_party/imgui/src/imgui_draw.cpp',
+        '#third_party/imgui/src/imgui_tables.cpp',
+        '#third_party/imgui/src/imgui_widgets.cpp',
+        '#third_party/imgui/src/imgui.cpp',
+        '#third_party/imgui/src/imgui_demo.cpp',
+        '#third_party/implot/implot_items.cpp',
+        '#third_party/implot/implot.cpp',
+        '#third_party/ImGuiFileDialog/ImGuiFileDialog.cpp'
+]
+objects = third_party_env.Object(sources)
+
+# Export object files and CPPPATH to app
+Return("objects", "env")

@@ -1,0 +1,50 @@
+Import('env', "objects")
+
+# Add the library paths 
+#env.Append(LIBPATH=['../third_party/glfw/lib-vc2010-64']) 
+env.Append(LIBPATH=['../third_party/glfw/lib-mingw-w64']) 
+# # Link the libraries 
+#env.Append(LIBS=['glfw3.lib', 'opengl32.lib', 'gdi32.lib', 'shell32.lib'])
+env.Append(LIBS=['glfw3', 'opengl32', 'gdi32', 'shell32'])
+
+env.Append(CPPPATH=[
+    '../app/inc/',
+    ])
+
+env.Append(CXXFLAGS=[
+    '-Wpedantic',
+    '-pedantic-errors',
+    '-Werror',
+    '-Wall',
+    '-Wextra',
+    '-Wcast-align',
+    '-Wcast-qual',
+    '-Wfloat-equal',
+    '-Wformat=2',
+    '-Wlogical-op',
+    '-Wmissing-declarations',
+    '-Wmissing-include-dirs',
+    '-Wpointer-arith',
+    '-Wredundant-decls',
+    '-Wsequence-point',
+    '-Wshadow',
+    '-Wswitch',
+    '-Wundef',
+    '-Wunreachable-code',
+    '-Wunused-but-set-parameter',
+    '-Wwrite-strings'
+])
+
+#env.Append(CCFLAGS=['/MD', '/nologo', '/std:c++20', '/EHsc', '/W4', '/diagnostics:column', '/diagnostics:caret'])
+
+env.Program(
+    target='main', 
+    source=[
+        'main.cpp',
+        'settings.cpp',
+        'log_reader.cpp',
+        'data_cursors.cpp',
+        'main_window.cpp',
+        "licenses.cpp",
+    ] + objects
+)
