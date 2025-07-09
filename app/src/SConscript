@@ -1,3 +1,4 @@
+import os
 Import('env', "objects")
 
 # Add the library paths 
@@ -8,7 +9,7 @@ env.Append(LIBPATH=['../third_party/glfw/lib-mingw-w64'])
 env.Append(LIBS=['glfw3', 'opengl32', 'gdi32', 'shell32'])
 
 env.Append(CPPPATH=[
-    '../app/inc/',
+    '#app/inc/',
     ])
 
 env.Append(CXXFLAGS=[
@@ -37,14 +38,37 @@ env.Append(CXXFLAGS=[
 
 #env.Append(CCFLAGS=['/MD', '/nologo', '/std:c++20', '/EHsc', '/W4', '/diagnostics:column', '/diagnostics:caret'])
 
-env.Program(
-    target='main', 
-    source=[
+sources = [
         'main.cpp',
         'settings.cpp',
         'log_reader.cpp',
         'data_cursors.cpp',
         'main_window.cpp',
         "licenses.cpp",
-    ] + objects
+]
+
+def clang_tidy_action(target, source, env):
+    src = str(source[0])
+    stamp = str(target[0])
+    includes = ' '.join(f"-I{str(env.Dir(p))}" for p in env.get('CPPPATH', []))
+    cmd = f"clang-tidy {src} --quiet -- {includes}"
+    result = os.system(cmd)
+    if result == 0:
+        with open(stamp, 'w') as f:
+            f.write("tidy OK\n")
+    return result
+def tidy_message(target, source, env):
+    return f"Running clang-tidy on {source[0]}"
+tidy_builder = Builder(action=Action(clang_tidy_action, strfunction=tidy_message))
+env.Append(BUILDERS={'ClangTidy': tidy_builder})
+
+if not GetOption('no_lint'):
+    for src in sources:
+        tidy_stamp = src + '.tidy.stamp'
+        env.ClangTidy(tidy_stamp, src)
+
+
+env.Program(
+    target='main', 
+    source=sources + objects
 )

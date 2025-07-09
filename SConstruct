@@ -14,6 +14,12 @@ env = Environment(
     
 )
 
+AddOption('--no-lint',
+          action='store_true',
+          dest='no_lint',
+          default=False,
+          help='Disable clang-tidy linting')
+
 third_objs, third_env = SConscript('third_party/SConscript', exports='env')
 
 SConscript('app/src/SConscript', variant_dir='build', exports={'env': third_env, 'objects': third_objs})

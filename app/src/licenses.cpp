@@ -16,7 +16,7 @@ void Licenses(void)
 
         if (ImGui::CollapsingHeader("Licenses"))
         {
-            if (ImGui::CollapsingHeader("Log Looker"))
+            if (ImGui::CollapsingHeader("Jelkiview"))
             {
                 ImGui::TextWrapped(
 R"(https://github.com/
