@@ -10,7 +10,7 @@ struct Data {
     std::unordered_map<std::string, std::vector<double>> signals;
 };
 
-extern std::vector<std::unordered_map<std::string, bool>> subplotsMap;
+extern std::vector<std::unordered_map<std::string, bool>> subplots_map;
 extern std::vector< std::vector<std::string> > layout;
 
 Data * GetData(void);

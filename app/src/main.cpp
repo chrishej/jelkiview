@@ -20,7 +20,7 @@
 #include "data_cursors.h"
 #include "main_window.h"
 
-static void glfw_error_callback(int error, const char* description)
+static void GlfwErrorCallback(int error, const char* description)
 {
     fprintf(stderr, "GLFW Error %d: %s\n", error, description);
 }
@@ -30,7 +30,7 @@ static int sleep_time;
 // Main code
 int main(int, char**)
 {
-    glfwSetErrorCallback(glfw_error_callback);
+    glfwSetErrorCallback(GlfwErrorCallback);
     if (!glfwInit())
         return 1;
 

@@ -1,6 +1,7 @@
 #ifndef SETTINGS_H_
 #define SETTINGS_H_
 #include <string>
+#include <cstdint>
 
 struct Settings
 {
@@ -12,7 +13,9 @@ struct Settings
     bool        auto_size_y;
 };
 
-Settings const * GetSettings(void);
-void ShowSettingsButton(void);
+namespace settings {
+Settings const * GetSettings();
+void ShowSettingsButton();
+}
 
 #endif // SETTINGS_H_

@@ -1,2 +1,2 @@
-double vLine1Pos = 0;
-double vLine2Pos = 0;
+double v_line_1_pos = 0;
+double v_line_2_pos = 0;

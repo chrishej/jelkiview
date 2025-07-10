@@ -47,6 +47,10 @@ sources = [
         "licenses.cpp",
 ]
 
+sources_lint = [
+    'settings.cpp',
+]
+
 def clang_tidy_action(target, source, env):
     src = str(source[0])
     stamp = str(target[0])
@@ -63,7 +67,7 @@ tidy_builder = Builder(action=Action(clang_tidy_action, strfunction=tidy_message
 env.Append(BUILDERS={'ClangTidy': tidy_builder})
 
 if not GetOption('no_lint'):
-    for src in sources:
+    for src in sources_lint:
         tidy_stamp = src + '.tidy.stamp'
         env.ClangTidy(tidy_stamp, src)
 

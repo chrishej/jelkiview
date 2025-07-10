@@ -7,7 +7,7 @@
 #include "data_cursors.h"
 
 
-std::vector<std::unordered_map<std::string, bool>> subplotsMap = {{}};
+std::vector<std::unordered_map<std::string, bool>> subplots_map = {{}};
 std::vector< std::vector<std::string> > layout = {{}};
 
 static Data data = {
@@ -27,14 +27,14 @@ void ClearData(void)
     return;
 }
 
-static std::string readAndCleanCSV(const std::string& filePath) {
-    std::ifstream file(filePath);
+static std::string ReadAndCleanCSV(const std::string& file_path) {
+    std::ifstream file(file_path);
     std::ostringstream cleaned;
     std::string line;
 
     while (std::getline(file, line)) {
         // Remove trailing separator
-        while (!line.empty() && line.back() == GetSettings()->separator[0]) {
+        while (!line.empty() && line.back() == settings::GetSettings()->separator[0]) {
             line.pop_back();
         }
         cleaned << line << "\n";
@@ -44,7 +44,7 @@ static std::string readAndCleanCSV(const std::string& filePath) {
 }
 
 // Custom converter for float with comma as decimal
-static float parseCommaDecimal(const std::string& str) {
+static float ParseCommaDecimal(const std::string& str) {
     float float_val;
     std::string modified;
 
@@ -63,43 +63,43 @@ static float parseCommaDecimal(const std::string& str) {
     return float_val;
 }
 
-static void readCSV(std::string file)
+static void ReadCSV(std::string file)
 {
-    std::string rawCSV = readAndCleanCSV(file);
-    std::stringstream csvStream(rawCSV);
+    std::string raw_csv = ReadAndCleanCSV(file);
+    std::stringstream csv_stream(raw_csv);
 
-    rapidcsv::Document doc(csvStream, rapidcsv::LabelParams(GetSettings()->header_line_idx, -1), rapidcsv::SeparatorParams(GetSettings()->separator[0]));
+    rapidcsv::Document doc(csv_stream, rapidcsv::LabelParams(settings::GetSettings()->header_line_idx, -1), rapidcsv::SeparatorParams(settings::GetSettings()->separator[0]));
 
     data.signals.clear();
-    subplotsMap.clear();// = {{}};
+    subplots_map.clear();// = {{}};
     data.time.clear();
 
     for (std::string& str : doc.GetColumnNames())
     {
-        std::vector<std::string> readStr = doc.GetColumn<std::string>(str);
-        if (str == std::string(GetSettings()->time_name))
+        std::vector<std::string> read_str = doc.GetColumn<std::string>(str);
+        if (str == std::string(settings::GetSettings()->time_name))
         {
-            for (const auto& val : readStr) data.time.push_back(parseCommaDecimal(val));
+            for (const auto& val : read_str) data.time.push_back(ParseCommaDecimal(val));
         }
         else
         {
-            for (const auto& val : readStr) data.signals[str].push_back(parseCommaDecimal(val));
+            for (const auto& val : read_str) data.signals[str].push_back(ParseCommaDecimal(val));
         }
     }
 
 
     for (size_t i = 0; i < layout.size(); i++)
     {
-        subplotsMap.push_back({});
+        subplots_map.push_back({});
         for (const auto& [signalName, _] : data.signals) 
         {
-            subplotsMap[i][signalName] = 
+            subplots_map[i][signalName] = 
                 std::find(layout[i].begin(), layout[i].end(), signalName) != layout[i].end();
         }
     }
 
-    vLine1Pos = data.time[data.time.size()>>2];
-    vLine2Pos = data.time[data.time.size()-(data.time.size()>>2)];
+    v_line_1_pos = data.time[data.time.size()>>2];
+    v_line_2_pos = data.time[data.time.size()-(data.time.size()>>2)];
 
     return;
 }
@@ -109,16 +109,16 @@ void LogReadButton()
     if (ImGui::MenuItem("Open Log"))
     {
         IGFD::FileDialogConfig config;
-	    config.path = GetSettings()->file_path;
+	    config.path = settings::GetSettings()->file_path;
         config.flags = ImGuiFileDialogFlags_Modal;
-        ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", GetSettings()->file_filter, config);
+        ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", settings::GetSettings()->file_filter, config);
     }
     if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey")) 
     {
         if (ImGuiFileDialog::Instance()->IsOk()) 
         {
-            std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
-            readCSV(filePathName);
+            std::string file_path_name = ImGuiFileDialog::Instance()->GetFilePathName();
+            ReadCSV(file_path_name);
         }
                 
         // close
