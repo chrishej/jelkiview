@@ -4,4 +4,4 @@
 
 void MainWindow(ImGuiIO& io);
 
-#endif // MAIN_WINDOW_H_
+#endif  // MAIN_WINDOW_H_

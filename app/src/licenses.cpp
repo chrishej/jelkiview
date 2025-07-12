@@ -1,25 +1,20 @@
 #include "licenses.h"
 
-void Licenses(void)
-{
+void Licenses(void) {
     static bool show_license_popup = false;
 
-    if (ImGui::MenuItem("About"))
-    {
+    if (ImGui::MenuItem("About")) {
         show_license_popup = true;
     }
 
-    if (show_license_popup)
-    {
-        ImGui::SetNextWindowSizeConstraints(ImVec2(800,400), ImVec2(FLT_MAX,FLT_MAX));
+    if (show_license_popup) {
+        ImGui::SetNextWindowSizeConstraints(ImVec2(800, 400), ImVec2(FLT_MAX, FLT_MAX));
         ImGui::Begin("About", &show_license_popup);  // Close button toggles flag
 
-        if (ImGui::CollapsingHeader("Licenses"))
-        {
-            if (ImGui::CollapsingHeader("Jelkiview"))
-            {
+        if (ImGui::CollapsingHeader("Licenses")) {
+            if (ImGui::CollapsingHeader("Jelkiview")) {
                 ImGui::TextWrapped(
-R"(https://github.com/
+                    R"(https://github.com/
 
 MIT License
 
@@ -44,10 +39,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.)");
             }
 
-        if (ImGui::CollapsingHeader("ImPlot"))
-        {
-            ImGui::TextWrapped(
-R"(https://github.com/epezent/implot
+            if (ImGui::CollapsingHeader("ImPlot")) {
+                ImGui::TextWrapped(
+                    R"(https://github.com/epezent/implot
 
 MIT License
 
@@ -70,12 +64,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.)");
-        }
+            }
 
-        if (ImGui::CollapsingHeader("ImGui"))
-        {
-            ImGui::TextWrapped(
-R"(https://github.com/ocornut/imgui
+            if (ImGui::CollapsingHeader("ImGui")) {
+                ImGui::TextWrapped(
+                    R"(https://github.com/ocornut/imgui
 
 The MIT License (MIT)
 
@@ -98,13 +91,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.)");
-        }
-        
+            }
 
-        if (ImGui::CollapsingHeader("rapidcsv"))
-        {
-            ImGui::TextWrapped(
-R"(https://github.com/d99kris/rapidcsv
+            if (ImGui::CollapsingHeader("rapidcsv")) {
+                ImGui::TextWrapped(
+                    R"(https://github.com/d99kris/rapidcsv
 
 BSD 3-Clause License
 
@@ -135,12 +126,11 @@ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.)");
-        }
+            }
 
-        if (ImGui::CollapsingHeader("ImGuiFileDialog"))
-        {
-            ImGui::TextWrapped(
-R"(https://github.com/aiekick/ImGuiFileDialog
+            if (ImGui::CollapsingHeader("ImGuiFileDialog")) {
+                ImGui::TextWrapped(
+                    R"(https://github.com/aiekick/ImGuiFileDialog
 
 MIT License
 
@@ -163,11 +153,10 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE..)");
-        }
-        if (ImGui::CollapsingHeader("nlohmann/json"))
-        {
-            ImGui::TextWrapped(
-R"(https://github.com/nlohmann/json
+            }
+            if (ImGui::CollapsingHeader("nlohmann/json")) {
+                ImGui::TextWrapped(
+                    R"(https://github.com/nlohmann/json
 
 MIT License 
 
@@ -190,8 +179,8 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.)");
+            }
         }
-    }
         ImGui::End();
     }
 

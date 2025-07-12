@@ -1,9 +1,9 @@
 #ifndef LOG_READER_H_
 #define LOG_READER_H_
 
+#include <string>
 #include <unordered_map>
 #include <vector>
-#include <string>
 
 struct Data {
     std::vector<double> time;
@@ -11,9 +11,9 @@ struct Data {
 };
 
 extern std::vector<std::unordered_map<std::string, bool>> subplots_map;
-extern std::vector< std::vector<std::string> > layout;
+extern std::vector<std::vector<std::string>> layout;
 
-Data * GetData(void);
+Data* GetData(void);
 void ClearData(void);
 void LogReadButton(void);
-#endif // LOG_READER_H_
+#endif  // LOG_READER_H_
