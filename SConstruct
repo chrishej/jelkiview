@@ -14,6 +14,8 @@ env = Environment(
     
 )
 
+env.Append(CXXFLAGS=['-std=c++20'])
+
 AddOption('--no-lint',
           action='store_true',
           dest='no_lint',

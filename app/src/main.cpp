@@ -25,6 +25,11 @@ static void GlfwErrorCallback(int error, const char* description)
     fprintf(stderr, "GLFW Error %d: %s\n", error, description);
 }
 
+static void RunInitFunctions()
+{
+    settings::init();
+}
+
 static int sleep_time;
 
 // Main code
@@ -87,6 +92,8 @@ int main(int, char**)
 
     // Our state
     ImVec4 clear_color = ImVec4(0.10f, 0.10f, 0.10f, 1.00f);
+
+    RunInitFunctions();
 
     // Main loop
     while (!glfwWindowShouldClose(window))

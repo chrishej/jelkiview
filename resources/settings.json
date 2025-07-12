@@ -1,0 +1,7 @@
+{
+    "header_line_idx": 3,
+    "time_name": "Time",
+    "separator": ";",
+    "file_filter": ".*,.csv,.txt",
+    "auto_size_y": true
+}

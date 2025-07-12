@@ -13,6 +13,9 @@ includes = [
     ]
 
 env.Append(CPPPATH=includes)
+# Use -isystem so warnings are ignored for third-party SW
+resolved_includes = [Dir(path).abspath for path in includes]
+env.Append(CXXFLAGS=[f"-isystem{path}" for path in resolved_includes])
 
 third_party_env = env.Clone()
 

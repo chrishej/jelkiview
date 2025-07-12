@@ -49,6 +49,7 @@ sources = [
 
 sources_lint = [
     'settings.cpp',
+#    'log_reader.cpp',
 ]
 
 def clang_tidy_action(target, source, env):

@@ -1,6 +1,5 @@
-Checks: '*, readability-identifier-naming, -llvmlibc-callee-namespace, -fuchsia-default-arguments-calls, 
-  -cppcoreguidelines-pro-bounds-array-to-pointer-decay, -hicpp-no-array-decay, -modernize-use-trailing-return-type, -llvmlibc-restrict-system-libc-headers,
-  fuchsia-statically-constructed-objects, -llvmlibc-implementation-in-namespace'
+Checks: '-*, modernize-*, performance-*, readability-*, bugprone-*. cppcoreguidelines-*, clang-analyzer-*, misc-*, google-*, -fuchsia,
+  llvm-include-order, -modernize-use-trailing-return-type'
 CheckOptions:
   - key: readability-identifier-naming.ClassCase
     value: CamelCase
