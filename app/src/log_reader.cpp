@@ -5,6 +5,7 @@
 #include "rapidcsv.h"
 #include "log_reader.h"
 #include "data_cursors.h"
+#include <iostream>
 
 
 std::vector<std::unordered_map<std::string, bool>> subplots_map = {{}};
@@ -111,13 +112,16 @@ void LogReadButton()
         IGFD::FileDialogConfig config;
 	    config.path = settings::GetSettings()->file_path;
         config.flags = ImGuiFileDialogFlags_Modal;
-        ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", settings::GetSettings()->file_filter, config);
+        const char* filters = "All Files{.*}";
+        ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", filters, config);
     }
     if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey")) 
     {
         if (ImGuiFileDialog::Instance()->IsOk()) 
         {
             std::string file_path_name = ImGuiFileDialog::Instance()->GetFilePathName();
+            std::cout << ImGuiFileDialog::Instance()->GetCurrentPath() << "\n";
+            settings::SetLogFilePath(ImGuiFileDialog::Instance()->GetCurrentPath());
             ReadCSV(file_path_name);
         }
                 

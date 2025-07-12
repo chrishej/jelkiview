@@ -1,7 +1,6 @@
 {
     "auto_size_y": false,
-    "file_filter": "*.csv",
     "header_line_idx": 0,
     "separator": ",",
-    "time_name": "time"
+    "time_name": "Time"
 }

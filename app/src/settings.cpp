@@ -1,5 +1,4 @@
 #include "settings.h"
-#include "ImGuiFileDialog.h"
 #include "imgui.h"
 #include "json.hpp"
 #include <cstdint>
@@ -7,6 +6,7 @@
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <utility>
 
 using Json = nlohmann::json;
 
@@ -19,7 +19,6 @@ namespace settings {
             .header_line_idx = 0,          // header_line_idx
             .time_name = "time",           // time_name
             .separator = ",",              // separator
-            .file_filter = "*.csv",        // file_filter
             .auto_size_y = false           // auto_size_y
         };
 
@@ -31,7 +30,7 @@ namespace settings {
 
             settings_out["time_name"  ] = std::string(settings.time_name);
             settings_out["separator"  ] = std::string(settings.separator);
-            settings_out["file_filter"] = std::string(settings.file_filter);
+            settings_out["file_path"  ] = std::string(settings.file_path);
 
             settings_out["header_line_idx"] = settings.header_line_idx;
             settings_out["auto_size_y"]     = settings.auto_size_y;
@@ -51,8 +50,7 @@ namespace settings {
     {
         if (!std::filesystem::exists(settings_path))
         {
-            std::ofstream file(settings_path);
-            file.close();
+            settings::SaveSettings();
         }
         else 
         {
@@ -67,9 +65,15 @@ namespace settings {
             std::strncpy(settings.time_name,   temp.c_str(), kSettingsCharBufLen);
             temp = settings_json["separator"  ].get<std::string>();
             std::strncpy(settings.separator,   temp.c_str(), kSettingsCharBufLen);
-            temp = settings_json["file_filter"].get<std::string>();
-            std::strncpy(settings.file_filter, temp.c_str(), kSettingsCharBufLen);
+
+            settings.file_path = settings_json["file_path"].get<std::string>();
         }
+    }
+
+    void SetLogFilePath(std::string path)
+    {
+        settings.file_path = std::move(path);
+        settings::SaveSettings();
     }
 
     void ShowSettingsButton()
@@ -104,29 +108,6 @@ namespace settings {
                 ImGui::SameLine();
                 ImGui::SetNextItemWidth(width);
                 ImGui::InputText("##hidden_label2", settings.separator, IM_ARRAYSIZE(settings.separator));
-
-                ImGui::TextUnformatted("File filter: ");
-                ImGui::SameLine();
-                ImGui::SetNextItemWidth(2.0F*width); // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
-                ImGui::InputText("##hidden_label3", settings.file_filter, IM_ARRAYSIZE(settings.file_filter));
-
-                if (ImGui::MenuItem("Choose default log path"))
-                {
-                    IGFD::FileDialogConfig config;
-                    config.path = ".";
-                    config.flags = ImGuiFileDialogFlags_Modal;
-                    ImGuiFileDialog::Instance()->OpenDialog("ChooseDirDlgKey", "Choose Directory", nullptr, config);
-                }
-                if (ImGuiFileDialog::Instance()->Display("ChooseDirDlgKey")) 
-                {
-                    if (ImGuiFileDialog::Instance()->IsOk()) 
-                    {
-                        settings.file_path = ImGuiFileDialog::Instance()->GetCurrentPath();
-                    }
-                    
-                    // close
-                    ImGuiFileDialog::Instance()->Close();
-                }
             }
 
             if (ImGui::CollapsingHeader("Plot Settings"))

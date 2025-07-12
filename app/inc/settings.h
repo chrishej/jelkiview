@@ -13,7 +13,6 @@ struct Settings
     uint8_t     header_line_idx;
     char        time_name  [settings::kSettingsCharBufLen];
     char        separator  [settings::kSettingsCharBufLen];
-    char        file_filter[settings::kSettingsCharBufLen];
     bool        auto_size_y;
 };
 
@@ -21,6 +20,7 @@ namespace settings {
     Settings const * GetSettings();
     void init();
     void ShowSettingsButton();
+    void SetLogFilePath(std::string path);
 }
 
 #endif // SETTINGS_H_
