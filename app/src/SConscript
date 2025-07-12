@@ -49,7 +49,7 @@ sources = [
 
 sources_lint = [
     'settings.cpp',
-#    'log_reader.cpp',
+    'log_reader.cpp',
 ]
 
 env.Tool('compilation_db')
