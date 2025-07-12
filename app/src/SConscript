@@ -52,11 +52,13 @@ sources_lint = [
 #    'log_reader.cpp',
 ]
 
+env.Tool('compilation_db')
+env.CompilationDatabase()
 def clang_tidy_action(target, source, env):
     src = str(source[0])
     stamp = str(target[0])
     includes = ' '.join(f"-I{str(env.Dir(p))}" for p in env.get('CPPPATH', []))
-    cmd = f"clang-tidy {src} --quiet -- {includes}"
+    cmd = f"clang-tidy -p . {src} --quiet --extra-arg=-std=c++20 --extra-arg=-stdlib=libstdc++ -- {includes}"
     result = os.system(cmd)
     if result == 0:
         with open(stamp, 'w') as f:

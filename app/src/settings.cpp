@@ -4,6 +4,7 @@
 #include "json.hpp"
 #include <cstdint>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <string>
 
@@ -21,6 +22,24 @@ namespace settings {
             .file_filter = "*.csv",        // file_filter
             .auto_size_y = false           // auto_size_y
         };
+
+        std::string settings_path = "resources/settings.json";
+
+        void SaveSettings()
+        {
+            Json settings_out;
+
+            settings_out["time_name"  ] = std::string(settings.time_name);
+            settings_out["separator"  ] = std::string(settings.separator);
+            settings_out["file_filter"] = std::string(settings.file_filter);
+
+            settings_out["header_line_idx"] = settings.header_line_idx;
+            settings_out["auto_size_y"]     = settings.auto_size_y;
+
+            std::ofstream out(settings_path);
+            out << settings_out.dump(4);
+            out.close();
+        }
     } // anonymous namespace 
 
     Settings const * GetSettings()
@@ -30,24 +49,33 @@ namespace settings {
 
     void init()
     {
-        std::ifstream settings_file("resources/settings.json");
-        Json settings_json = Json::parse(settings_file); // NOLINT(misc-const-correctness)
+        if (!std::filesystem::exists(settings_path))
+        {
+            std::ofstream file(settings_path);
+            file.close();
+        }
+        else 
+        {
+            std::ifstream settings_file(settings_path);
+            Json settings_json = Json::parse(settings_file); // NOLINT(misc-const-correctness)
         
-        settings.header_line_idx = settings_json["header_line_idx"].get<uint8_t>();
-        settings.auto_size_y     = settings_json["auto_size_y"].get<bool>();
+            settings.header_line_idx = settings_json["header_line_idx"].get<uint8_t>();
+            settings.auto_size_y     = settings_json["auto_size_y"].get<bool>();
 
-        std::string temp;
-        temp = settings_json["time_name"  ].get<std::string>();
-        std::strncpy(settings.time_name,   temp.c_str(), kSettingsCharBufLen);
-        temp = settings_json["separator"  ].get<std::string>();
-        std::strncpy(settings.separator,   temp.c_str(), kSettingsCharBufLen);
-        temp = settings_json["file_filter"].get<std::string>();
-        std::strncpy(settings.file_filter, temp.c_str(), kSettingsCharBufLen);
+            std::string temp;
+            temp = settings_json["time_name"  ].get<std::string>();
+            std::strncpy(settings.time_name,   temp.c_str(), kSettingsCharBufLen);
+            temp = settings_json["separator"  ].get<std::string>();
+            std::strncpy(settings.separator,   temp.c_str(), kSettingsCharBufLen);
+            temp = settings_json["file_filter"].get<std::string>();
+            std::strncpy(settings.file_filter, temp.c_str(), kSettingsCharBufLen);
+        }
     }
 
     void ShowSettingsButton()
     {
         static bool show_settings_window = false;
+        static bool save_settings        = false;
         const float width = 80.0F;
 
         if (ImGui::MenuItem("Settings"))
@@ -57,6 +85,7 @@ namespace settings {
 
         if (show_settings_window)
         {
+            save_settings = true;
             ImGui::Begin("Settings", &show_settings_window);  // Close button toggles flag
             if (ImGui::CollapsingHeader("Log Import"))
             {
@@ -106,6 +135,12 @@ namespace settings {
             }
 
             ImGui::End();
+        } 
+        
+        if (save_settings && !show_settings_window)
+        {
+            save_settings = false;
+            settings::SaveSettings();
         }
     }
 } // namespace settings
