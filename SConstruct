@@ -15,6 +15,7 @@ env = Environment(
 )
 
 env.Append(CXXFLAGS=['-std=c++20', '-static', '-static-libgcc', '-static-libstdc++'])
+env.Append(LINKFLAGS=['-static'])
 
 AddOption('--no-lint',
           action='store_true',
