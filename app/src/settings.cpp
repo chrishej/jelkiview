@@ -53,7 +53,7 @@ void init() {
         Json settings_json = Json::parse(settings_file);  // NOLINT(misc-const-correctness)
 
         settings.header_line_idx = settings_json["header_line_idx"].get<uint8_t>();
-        settings.auto_size_y = settings_json["auto_size_y"].get<bool>();
+        settings.auto_size_y     = settings_json["auto_size_y"].get<bool>();
 
         std::string temp;
         temp = settings_json["time_name"].get<std::string>();

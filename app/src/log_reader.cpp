@@ -16,9 +16,7 @@
 #include "imgui.h"
 #include "rapidcsv.h"
 #include "settings.h"
-
-std::vector<std::unordered_map<std::string, bool>> subplots_map = {{}};
-std::vector<std::vector<std::string>> layout = {{}};
+#include "layout.h"
 
 namespace {
 Data data = {
@@ -68,7 +66,7 @@ void ReadCSV(std::string const& file) {
         rapidcsv::SeparatorParams(settings::GetSettings()->separator[0]));
 
     data.signals.clear();
-    subplots_map.clear();  // = {{}};
+    layout::subplots_map.clear();
     data.time.clear();
 
     for (std::string const& str : doc.GetColumnNames()) {
@@ -84,13 +82,7 @@ void ReadCSV(std::string const& file) {
         }
     }
 
-    for (size_t i = 0; i < layout.size(); i++) {
-        subplots_map.emplace_back();
-        for (const auto& [signalName, dummy] : data.signals) {
-            subplots_map[i][signalName] =
-                std::find(layout[i].begin(), layout[i].end(), signalName) != layout[i].end();
-        }
-    }
+   layout::SetMapToLayout();
 
     v_line_1_pos = data.time[data.time.size() >> 2];
     v_line_2_pos = data.time[data.time.size() - (data.time.size() >> 2)];
@@ -115,7 +107,6 @@ void LogReadButton() {
     if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey")) {
         if (ImGuiFileDialog::Instance()->IsOk()) {
             std::string const file_path_name = ImGuiFileDialog::Instance()->GetFilePathName();
-            std::cout << ImGuiFileDialog::Instance()->GetCurrentPath() << "\n";
             settings::SetLogFilePath(ImGuiFileDialog::Instance()->GetCurrentPath());
             ReadCSV(file_path_name);
         }

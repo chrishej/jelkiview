@@ -23,10 +23,10 @@
 #include "math.h"
 #include "rapidcsv.h"
 #include "settings.h"
+#include "layout.h"
 
 std::vector<double> Decimate(const std::vector<double>& input, int time_min_idx, int time_max_idx,
                              int m);
-void UpdateLayout();
 void ManageSubplot(int subplot_index,
                    std::unordered_map<std::string, std::vector<double>>* const signals,
                    std::vector<std::unordered_map<std::string, bool>>* subplots_map);
@@ -49,21 +49,6 @@ std::vector<double> Decimate(const std::vector<double>& input, int time_min_idx,
     return result;
 }
 
-void UpdateLayout() {
-    layout.clear();
-
-    for (size_t i = 0; i < subplots_map.size(); i++) {
-        layout.push_back({});
-        for (const auto& [signal_name, is_enabled] : subplots_map[i]) {
-            if (is_enabled) {
-                layout[i].push_back(signal_name);
-            }
-        }
-    }
-
-    return;
-}
-
 void ManageSubplot(int subplot_index,
                    std::unordered_map<std::string, std::vector<double>>* const signals,
                    std::vector<std::unordered_map<std::string, bool>>* subplots_map_loc) {
@@ -75,7 +60,7 @@ void ManageSubplot(int subplot_index,
         auto& signal_map = (*subplots_map_loc)[subplot_index];
         for (auto& [signal_name, is_enabled] : signal_map) {
             if (ImGui::Checkbox(signal_name.c_str(), &is_enabled)) {
-                UpdateLayout();
+                layout::UpdateLayout();
             }
         }
         ImGui::EndPopup();
@@ -114,6 +99,7 @@ void MainWindow(ImGuiIO& io) {
     LogReadButton();
     // settingsButton();
     settings::ShowSettingsButton();
+    //layout::SaveLayoutButton();
     Licenses();
     ImGui::EndMainMenuBar();
 
@@ -142,7 +128,7 @@ void MainWindow(ImGuiIO& io) {
     // x_range.Min, x_range.Max, visible_min_idx, visible_max_idx, decimation_factor);
 
     ImPlotSubplotFlags const subplot_flags = ImPlotSubplotFlags_LinkAllX;
-    uint8_t const len = subplots_map.size();
+    uint8_t const len = layout::subplots_map.size();
     ImPlot::BeginSubplots("", len, 1,
                           ImVec2(io.DisplaySize.x - value_column_size, io.DisplaySize.y - 35),
                           subplot_flags);
@@ -186,7 +172,7 @@ void MainWindow(ImGuiIO& io) {
 
         // for (auto signal_nameIt = subplots[i].begin(); signal_nameIt != subplots[i].end();
         // signal_nameIt++)
-        for (auto& [signal_name, is_enabled] : subplots_map[i]) {
+        for (auto& [signal_name, is_enabled] : layout::subplots_map[i]) {
             if (is_enabled) {
                 // ImPlot::PlotStairs((*signal_nameIt).c_str(), time.data(),
                 // signals[*signal_nameIt].data(), samples); std::vector<double> time_dec =
@@ -226,8 +212,8 @@ void MainWindow(ImGuiIO& io) {
 
     ImGui::SameLine();
     ImGui::BeginGroup();
-    for (int i = 0; (size_t)i < subplots_map.size(); ++i) {
-        std::unordered_map<std::string, bool> subplots_map_i = subplots_map[i];
+    for (int i = 0; (size_t)i < layout::subplots_map.size(); ++i) {
+        std::unordered_map<std::string, bool> subplots_map_i = layout::subplots_map[i];
         ImGui::SetCursorPosY(plot_y_pos[i]);
         ImGui::BeginTable(("Table##" + std::to_string(i)).c_str(), 3);
         ImGui::TableSetupColumn("Signal", ImGuiTableColumnFlags_WidthFixed,
@@ -250,7 +236,7 @@ void MainWindow(ImGuiIO& io) {
         }
         if (ImGui::BeginPopup(popup_id.c_str())) {
             // ImGui::Text("Managing subplot %d", i);
-            ManageSubplot(i, &(GetData()->signals), &subplots_map);
+            ManageSubplot(i, &(GetData()->signals), &layout::subplots_map);
             ImGui::EndPopup();
         }
         ImGui::PopID();
