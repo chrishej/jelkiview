@@ -93,7 +93,7 @@ int main(int, char**) {
     // "fonts/" folder. See Makefile.emscripten for details.
     // style.FontSizeBase = 16.0f;
     // ImFont* font = io.Fonts->AddFontFromFileTTF("fonts/MonaspaceNeonFrozen-Regular.ttf", 18.0f);
-    ImFont* font = io.Fonts->AddFontFromFileTTF("fonts\\MonaspaceArgonFrozen-Regular.ttf", 18.0f);
+    ImFont* font = io.Fonts->AddFontFromFileTTF("resources\\MonaspaceArgonFrozen-Regular.ttf", 18.0f);
     if (!font) {
         std::cerr << "Failed to load font!" << std::endl;
     }

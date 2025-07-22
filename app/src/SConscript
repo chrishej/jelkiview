@@ -45,6 +45,7 @@ sources = [
         'data_cursors.cpp',
         'main_window.cpp',
         "licenses.cpp",
+        "layout.cpp",
 ]
 
 sources_lint = [
@@ -74,8 +75,17 @@ if not GetOption('no_lint'):
         tidy_stamp = src + '.tidy.stamp'
         env.ClangTidy(tidy_stamp, src)
 
+to_release = [
+    "jelkiview.exe",
+    "#resources/"
+]
+release_targets = []
+for item in to_release:
+    release_targets.append(env.Install("release", item))
+
+env.Alias("release", release_targets)
 
 env.Program(
-    target='main', 
+    target='jelkiview', 
     source=sources + objects
 )
