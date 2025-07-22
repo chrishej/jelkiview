@@ -99,7 +99,13 @@ void MainWindow(ImGuiIO& io) {
     LogReadButton();
     // settingsButton();
     settings::ShowSettingsButton();
-    //layout::SaveLayoutButton();
+
+    if (ImGui::BeginMenu("Layout")) {
+        layout::LayoutMenuButton();
+        ImGui::EndMenu();
+    }
+    layout::GuiUpdate();
+
     Licenses();
     ImGui::EndMainMenuBar();
 

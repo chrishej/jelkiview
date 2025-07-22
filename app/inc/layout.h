@@ -11,7 +11,8 @@ extern std::vector<std::vector<std::string>> layout;
 
 void SetMapToLayout();
 void UpdateLayout();
-void SaveLayoutButton();
+void LayoutMenuButton();
+void GuiUpdate();
 }
 
 #endif // LAYOUT_H_
