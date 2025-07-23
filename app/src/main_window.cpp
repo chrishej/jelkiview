@@ -18,18 +18,20 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "implot.h"
+#include "layout.h"
 #include "licenses.h"
 #include "log_reader.h"
 #include "math.h"
 #include "rapidcsv.h"
 #include "settings.h"
-#include "layout.h"
 
 std::vector<double> Decimate(const std::vector<double>& input, int time_min_idx, int time_max_idx,
                              int m);
 void ManageSubplot(int subplot_index,
                    std::unordered_map<std::string, std::vector<double>>* const signals,
                    std::vector<std::unordered_map<std::string, bool>>* subplots_map);
+
+bool keep_range = false;
 
 std::vector<double> Decimate(const std::vector<double>& input, int time_min_idx, int time_max_idx,
                              int m) {
@@ -82,6 +84,10 @@ void ManageSubplot(int subplot_index,
             for (const auto& [signal_name, _] : (*signals)) {
                 (*subplots_map_loc)[new_index][signal_name] = false;
             }
+
+            // when plotting, freeze the x range for one tick. Otherwise, a range of 0-1 will be
+            // used since the last plot does not have any data so implot takes the default range.
+            keep_range = true;
         }
     }
     return;
@@ -97,7 +103,6 @@ void MainWindow(ImGuiIO& io) {
 
     ImGui::BeginMainMenuBar();
     LogReadButton();
-    // settingsButton();
     settings::ShowSettingsButton();
 
     if (ImGui::BeginMenu("Layout")) {
@@ -139,6 +144,13 @@ void MainWindow(ImGuiIO& io) {
                           ImVec2(io.DisplaySize.x - value_column_size, io.DisplaySize.y - 35),
                           subplot_flags);
 
+    double keep_x_min = 0;
+    double keep_x_max = 2;
+    if (keep_range) {
+        keep_x_min = x_range.Min;
+        keep_x_max = x_range.Max;
+    }
+
     std::vector<float> plot_y_pos;
     for (int i = 0; i < len; ++i) {
         std::string title = "";  //"Plot " + std::to_string(i);
@@ -154,6 +166,11 @@ void MainWindow(ImGuiIO& io) {
         }
 
         plot_y_pos.push_back(ImGui::GetCursorPosY());
+
+        if (keep_range) {
+            ImPlot::SetNextAxisLimits(ImAxis_X1, keep_x_min, keep_x_max, ImPlotCond_None);
+            x_flags = (ImPlotAxisFlags_)(ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_Lock);
+        }
 
         ImPlot::BeginPlot(title.c_str(), ImVec2(-1, 0), 0);
         ImPlot::SetupLegend(ImPlotLocation_NorthEast);
@@ -203,6 +220,9 @@ void MainWindow(ImGuiIO& io) {
         x_range = ImPlot::GetPlotLimits().X;
         ImPlot::EndPlot();
     }
+
+    // reset freeze x range flag so it is only done once
+    keep_range = false;
 
     ImPlot::EndSubplots();
 
