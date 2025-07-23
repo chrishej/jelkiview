@@ -1,30 +1,41 @@
 #include "layout.h"
-#include "log_reader.h"
-#include "imgui.h"
-#include "ImGuiFileDialog.h"
+
 #include <algorithm>
+#include <cstddef>
+#include <fstream>
 #include <iostream>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+#include "ImGuiFileDialog.h"
+#include "imgui.h"
 #include "json.hpp"
+#include "log_reader.h"
 
 using Json = nlohmann::json;
 
 namespace layout {
 std::vector<std::unordered_map<std::string, bool>> subplots_map = {{}};
 std::vector<std::vector<std::string>> layout = {{}};
-static bool should_open_save_dialog = false;
-static bool should_open_open_dialog = false;
 
-static void Save();
-static void Open();
-static void SetLayout(std::string file_path_name);
+namespace {
+bool should_open_save_dialog = false;
+bool should_open_open_dialog = false;
 
-void SetMapToLayout(){
+void Save();
+void Open();
+void SetLayout(const std::string& file_path_name);
+}  // namespace
+
+void SetMapToLayout() {
     subplots_map.clear();
     for (size_t i = 0; i < layout::layout.size(); i++) {
         layout::subplots_map.emplace_back();
         for (const auto& [signalName, dummy] : GetData()->signals) {
             layout::subplots_map[i][signalName] =
-                std::find(layout::layout[i].begin(), layout::layout[i].end(), signalName) != layout::layout[i].end();
+                std::find(layout::layout[i].begin(), layout::layout[i].end(), signalName) !=
+                layout::layout[i].end();
         }
     }
 }
@@ -56,18 +67,18 @@ void GuiUpdate() {
     Open();
 }
 
-
-static void SetLayout(std::string file_path_name) {
+namespace {
+void SetLayout(const std::string& file_path_name) {
     // Open file and parse JSON
-    std::ifstream in(file_path_name);
-    if (!in.is_open()) {
+    std::ifstream in_file(file_path_name);
+    if (!in_file.is_open()) {
         std::cerr << "Failed to open layout file: " << file_path_name << "\n";
         return;
     }
 
     Json jsn;
     try {
-        in >> jsn;
+        in_file >> jsn;
 
         // Assuming you want to load into this structure:
         layout = jsn.get<std::vector<std::vector<std::string>>>();
@@ -79,7 +90,7 @@ static void SetLayout(std::string file_path_name) {
     }
 }
 
-static void Open() {
+void Open() {
     if (should_open_open_dialog) {
         IGFD::FileDialogConfig config;
         config.path = "./resources/layouts/";
@@ -100,7 +111,7 @@ static void Open() {
     }
 }
 
-static void Save() {
+void Save() {
     if (should_open_save_dialog) {
         IGFD::FileDialogConfig config;
         config.path = "./resources/layouts/";
@@ -114,7 +125,7 @@ static void Save() {
         if (ImGuiFileDialog::Instance()->IsOk()) {
             std::string const file_path_name = ImGuiFileDialog::Instance()->GetFilePathName();
 
-            Json jsn = layout;
+            Json const jsn = layout;
             // close
             ImGuiFileDialog::Instance()->Close();
             // Save to file
@@ -125,5 +136,6 @@ static void Save() {
         ImGuiFileDialog::Instance()->Close();
     }
 }
+}  // namespace
 
-}
+}  // namespace layout

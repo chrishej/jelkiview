@@ -103,13 +103,20 @@ void MainWindow(ImGuiIO& io) {
 
     ImGui::BeginMainMenuBar();
     LogReadButton();
+    ImGui::Text("|");
     settings::ShowSettingsButton();
-
+    ImGui::Text("|");
     if (ImGui::BeginMenu("Layout")) {
         layout::LayoutMenuButton();
         ImGui::EndMenu();
     }
     layout::GuiUpdate();
+    ImGui::Text("|");
+    if (ImGui::MenuItem("Cursors to view")) {
+        v_line_1_pos = x_range.Min + (x_range.Max - x_range.Min)/3.0;
+        v_line_2_pos = x_range.Min + 2.0*(x_range.Max - x_range.Min)/3.0;
+    }
+    ImGui::Text("|");
 
     Licenses();
     ImGui::EndMainMenuBar();
