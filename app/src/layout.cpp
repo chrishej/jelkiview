@@ -54,10 +54,10 @@ void UpdateLayout() {
 }
 
 void LayoutMenuButton() {
-    if (ImGui::MenuItem("Save Layout")) {
+    if (ImGui::MenuItem("Save")) {
         should_open_save_dialog = true;
     }
-    if (ImGui::MenuItem("Open Layout")) {
+    if (ImGui::MenuItem("Open")) {
         should_open_open_dialog = true;
     }
 }
@@ -69,7 +69,6 @@ void GuiUpdate() {
 
 namespace {
 void SetLayout(const std::string& file_path_name) {
-    // Open file and parse JSON
     std::ifstream in_file(file_path_name);
     if (!in_file.is_open()) {
         std::cerr << "Failed to open layout file: " << file_path_name << "\n";
@@ -80,9 +79,25 @@ void SetLayout(const std::string& file_path_name) {
     try {
         in_file >> jsn;
 
-        // Assuming you want to load into this structure:
-        layout = jsn.get<std::vector<std::vector<std::string>>>();
+        // Validate JSON structure: must be array of arrays of strings
+        if (!jsn.is_array()) {
+            std::cerr << "Layout file format error: root is not an array.\n";
+            return;
+        }
+        for (const auto& arr : jsn) {
+            if (!arr.is_array()) {
+                std::cerr << "Layout file format error: expected array of arrays.\n";
+                return;
+            }
+            for (const auto& elem : arr) {
+                if (!elem.is_string()) {
+                    std::cerr << "Layout file format error: expected string elements.\n";
+                    return;
+                }
+            }
+        }
 
+        layout = jsn.get<std::vector<std::vector<std::string>>>();
         SetMapToLayout();
 
     } catch (const Json::exception& e) {
@@ -104,7 +119,6 @@ void Open() {
         if (ImGuiFileDialog::Instance()->IsOk()) {
             std::string const file_path_name = ImGuiFileDialog::Instance()->GetFilePathName();
 
-            std::cout << file_path_name << "\n";
             SetLayout(file_path_name);
         }
         ImGuiFileDialog::Instance()->Close();
@@ -126,10 +140,13 @@ void Save() {
             std::string const file_path_name = ImGuiFileDialog::Instance()->GetFilePathName();
 
             Json const jsn = layout;
-            // close
             ImGuiFileDialog::Instance()->Close();
-            // Save to file
+
             std::ofstream out(file_path_name);
+            if (!out.is_open()) {
+                std::cerr << "Failed to open file for saving: " << file_path_name << "\n";
+                return;
+            }
             out << jsn.dump(4);  // Pretty-print with 4-space indentation
             out.close();
         }

@@ -25,13 +25,24 @@
 #include "rapidcsv.h"
 #include "settings.h"
 
+typedef struct {
+    double decimation_factor;
+    int visible_min_idx;
+    int visible_max_idx;
+
+} DecimationData;
+
 std::vector<double> Decimate(const std::vector<double>& input, int time_min_idx, int time_max_idx,
                              int m);
 void ManageSubplot(int subplot_index,
                    std::unordered_map<std::string, std::vector<double>>* const signals,
                    std::vector<std::unordered_map<std::string, bool>>* subplots_map);
 
+static ImPlotRange x_range;
 bool keep_range = false;
+
+bool remove_subplot = false;
+int subplot_idx = 0;
 
 std::vector<double> Decimate(const std::vector<double>& input, int time_min_idx, int time_max_idx,
                              int m) {
@@ -71,7 +82,10 @@ void ManageSubplot(int subplot_index,
     if (ImGui::Button("Remove Subplot")) {
         if (subplot_index >= 0 && (size_t)subplot_index < subplots_map_loc->size()) {
             subplots_map_loc->erase(subplots_map_loc->begin() + subplot_index);
+            remove_subplot = true;
+            subplot_idx = subplot_index;
         }
+        keep_range = true;
     }
 
     if (ImGui::Button("Insert Subplot")) {
@@ -87,20 +101,13 @@ void ManageSubplot(int subplot_index,
 
             // when plotting, freeze the x range for one tick. Otherwise, a range of 0-1 will be
             // used since the last plot does not have any data so implot takes the default range.
-            keep_range = true;
         }
+        keep_range = true;
     }
     return;
 }
 
-void MainWindow(ImGuiIO& io) {
-    static ImPlotRange x_range;
-
-    const int id_vline_1_base = 100;
-    const int id_vline_2_base = 200;
-    const int id_vline_1 = id_vline_1_base;
-    const int id_vline_2 = id_vline_2_base;
-
+static void MenuBar() {
     ImGui::BeginMainMenuBar();
     LogReadButton();
     ImGui::Text("|");
@@ -120,119 +127,39 @@ void MainWindow(ImGuiIO& io) {
 
     Licenses();
     ImGui::EndMainMenuBar();
+}
 
-    ImGui::SetNextWindowPos(ImVec2(0, ImGui::GetCursorPosY() - 10));
-    ImGui::SetNextWindowSize(io.DisplaySize);
-
-    ImGui::Begin("FullScreenWindow", nullptr,
-                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                     ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus |
-                     ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar);
-
-    float const value_column_size = 400;
-
+static void CalculateDecimationData(ImPlotRange& x_range_loc,
+                                    DecimationData& decimation_data) {
     double samples_in_range =
-        (x_range.Max - x_range.Min) / (GetData()->time[1] - GetData()->time[0]);
+        (x_range_loc.Max - x_range_loc.Min) / (GetData()->time[1] - GetData()->time[0]);
     double max_samples_in_view = 10e3;
-    double decimation_factor = std::max(samples_in_range / max_samples_in_view, 1.0);
+    decimation_data.decimation_factor = std::max(samples_in_range / max_samples_in_view, 1.0);
+
     auto visible_min_it =
-        std::lower_bound(GetData()->time.begin(), GetData()->time.end(), x_range.Min);
-    int visible_min_idx = std::distance(GetData()->time.begin(), visible_min_it);
-    visible_min_idx = std::max(visible_min_idx - 1, 0);
+        std::lower_bound(GetData()->time.begin(), GetData()->time.end(), x_range_loc.Min);
+    decimation_data.visible_min_idx = std::distance(GetData()->time.begin(), visible_min_it);
+    decimation_data.visible_min_idx = std::max(decimation_data.visible_min_idx - 1, 0);
+
     auto visible_max_it =
-        std::upper_bound(GetData()->time.begin(), GetData()->time.end(), x_range.Max);
-    int visible_max_idx = std::distance(GetData()->time.begin(), visible_max_it);
-    // ImGui::Text("X Min: %.2f, X Max: %.2f, minIdx: %d, maxIdx: %d, decimationFac: %.2f",
-    // x_range.Min, x_range.Max, visible_min_idx, visible_max_idx, decimation_factor);
+        std::upper_bound(GetData()->time.begin(), GetData()->time.end(), x_range_loc.Max);
+    decimation_data.visible_max_idx = std::distance(GetData()->time.begin(), visible_max_it);
+}
 
-    ImPlotSubplotFlags const subplot_flags = ImPlotSubplotFlags_LinkAllX;
-    uint8_t const len = layout::subplots_map.size();
-    ImPlot::BeginSubplots("", len, 1,
-                          ImVec2(io.DisplaySize.x - value_column_size, io.DisplaySize.y - 35),
-                          subplot_flags);
+static void DragLineShowLabel(float const y_pos) {
+    ImVec2 label_pos =
+        ImPlot::PlotToPixels(ImVec2(v_line_1_pos, 0));  // y doesn't matter for label
+    label_pos.y = y_pos + 15 + 10.0f;           // offset label above the line
+    label_pos.x += 5.0f;
+    ImGui::GetWindowDrawList()->AddText(label_pos, IM_COL32_WHITE, "1");
+    label_pos =
+        ImPlot::PlotToPixels(ImVec2(v_line_2_pos, 0));  // y doesn't matter for label
+    label_pos.y = y_pos + 15 + 10.0f;           // offset label above the line
+    label_pos.x += 5.0f;
+    ImGui::GetWindowDrawList()->AddText(label_pos, IM_COL32_WHITE, "2");
+}
 
-    double keep_x_min = 0;
-    double keep_x_max = 2;
-    if (keep_range) {
-        keep_x_min = x_range.Min;
-        keep_x_max = x_range.Max;
-    }
-
-    std::vector<float> plot_y_pos;
-    for (int i = 0; i < len; ++i) {
-        std::string title = "";  //"Plot " + std::to_string(i);
-
-        ImPlotAxisFlags_ x_flags = ImPlotAxisFlags_None;
-        ImPlotAxisFlags_ y_flags = ImPlotAxisFlags_None;
-        if (i < len - 1) {
-            x_flags = ImPlotAxisFlags_NoTickLabels;
-        }
-
-        if (settings::GetSettings()->auto_size_y) {
-            y_flags = ImPlotAxisFlags_AutoFit;
-        }
-
-        plot_y_pos.push_back(ImGui::GetCursorPosY());
-
-        if (keep_range) {
-            ImPlot::SetNextAxisLimits(ImAxis_X1, keep_x_min, keep_x_max, ImPlotCond_None);
-            x_flags = (ImPlotAxisFlags_)(ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_Lock);
-        }
-
-        ImPlot::BeginPlot(title.c_str(), ImVec2(-1, 0), 0);
-        ImPlot::SetupLegend(ImPlotLocation_NorthEast);
-        ImPlot::SetupAxis(ImAxis_X1, nullptr, x_flags);
-        ImPlot::SetupAxis(ImAxis_Y1, nullptr, y_flags);
-
-        ImPlot::DragLineX(id_vline_1, &v_line_1_pos, ImVec4(1, 1, 0, 1), 2.0f);
-        ImPlot::DragLineX(id_vline_2, &v_line_2_pos, ImVec4(0.5, 1, 0.5, 1), 2.0f);
-
-        if (i == 0) {
-            ImVec2 label_pos =
-                ImPlot::PlotToPixels(ImVec2(v_line_1_pos, 0));  // y doesn't matter for label
-            label_pos.y = plot_y_pos[0] + 15 + 10.0f;           // offset label above the line
-            label_pos.x += 5.0f;
-            ImGui::GetWindowDrawList()->AddText(label_pos, IM_COL32_WHITE, "1");
-            label_pos =
-                ImPlot::PlotToPixels(ImVec2(v_line_2_pos, 0));  // y doesn't matter for label
-            label_pos.y = plot_y_pos[0] + 15 + 10.0f;           // offset label above the line
-            label_pos.x += 5.0f;
-            ImGui::GetWindowDrawList()->AddText(label_pos, IM_COL32_WHITE, "2");
-        }
-
-        // for (auto signal_nameIt = subplots[i].begin(); signal_nameIt != subplots[i].end();
-        // signal_nameIt++)
-        for (auto& [signal_name, is_enabled] : layout::subplots_map[i]) {
-            if (is_enabled) {
-                // ImPlot::PlotStairs((*signal_nameIt).c_str(), time.data(),
-                // signals[*signal_nameIt].data(), samples); std::vector<double> time_dec =
-                // Decimate(timeVec, timeVec, x_range.Min, x_range.Max,
-                // (int)(decimation_factor+0.5f)); std::vector<double> val     =
-                // Decimate(signals[signal_name], timeVec, x_range.Min, x_range.Max,
-                // (int)(decimation_factor+0.5f));
-                std::vector<double> time_dec =
-                    Decimate(GetData()->time, visible_min_idx, visible_max_idx,
-                             (int)(decimation_factor + 0.5f));
-                std::vector<double> val =
-                    Decimate(GetData()->signals[signal_name], visible_min_idx, visible_max_idx,
-                             (int)(decimation_factor + 0.5f));
-                // std::vector<double> time_dec = GetData()->time;
-                // std::vector<double> val     = signals[signal_name];
-                ImPlot::PlotStairs(signal_name.c_str(), time_dec.data(), val.data(), val.size());
-            }
-        }
-
-        // ImPlot::PlotStairs("", time, signals[subplots[i][0]], samples);
-        // ImPlot::PlotStairs("", time, signalValues[(i+1)&0x1], samples);
-        x_range = ImPlot::GetPlotLimits().X;
-        ImPlot::EndPlot();
-    }
-
-    // reset freeze x range flag so it is only done once
-    keep_range = false;
-
-    ImPlot::EndSubplots();
-
+static void CursorDataTable(std::vector<float>& plot_y_pos, const float value_column_size) {
     auto vline_1_it =
         std::upper_bound(GetData()->time.begin(), GetData()->time.end(), v_line_1_pos);
     if (vline_1_it != GetData()->time.begin()) --vline_1_it;
@@ -295,6 +222,102 @@ void MainWindow(ImGuiIO& io) {
 
         ImGui::EndTable();
     }
+}
+
+void MainWindow(ImGuiIO& io) {
+
+    const int id_vline_1_base = 100;
+    const int id_vline_2_base = 200;
+    const int id_vline_1 = id_vline_1_base;
+    const int id_vline_2 = id_vline_2_base;
+    const uint8_t len = layout::subplots_map.size();
+    const float value_column_size = 400;
+    const ImPlotSubplotFlags subplot_flags = ImPlotSubplotFlags_LinkAllX;
+
+    double keep_x_min = 0;
+    double keep_x_max = 2;
+    std::vector<float> plot_y_pos;
+    DecimationData decimation_data;
+
+    // Menu bar does not belong the full-screen window, so it is created before the window.
+
+    /* --------------- Set up and start the full-screen window -------------- */
+    ImGui::SetNextWindowPos(ImVec2(0, ImGui::GetCursorPosY() - 10));
+    ImGui::SetNextWindowSize(io.DisplaySize);
+
+    ImGui::Begin("FullScreenWindow", nullptr,
+                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+                     ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus |
+                     ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar);
+    /* ------------- End Set up and start the full-screen window ------------ */
+
+    MenuBar();
+    CalculateDecimationData(x_range, decimation_data);
+
+    ImPlot::BeginSubplots("", len, 1,
+                          ImVec2(io.DisplaySize.x - value_column_size, io.DisplaySize.y - 35),
+                          subplot_flags);
+
+    if (keep_range) {
+        keep_x_min = x_range.Min;
+        keep_x_max = x_range.Max;
+    }
+
+    for (int i = 0; i < len; i++) {
+        std::string title = "";
+
+        ImPlotAxisFlags_ x_flags = ImPlotAxisFlags_None;
+        ImPlotAxisFlags_ y_flags = ImPlotAxisFlags_None;
+        if (i < len - 1) {
+            x_flags = ImPlotAxisFlags_NoTickLabels;
+        }
+
+        if (settings::GetSettings()->auto_size_y) {
+            y_flags = ImPlotAxisFlags_AutoFit;
+        }
+
+        plot_y_pos.push_back(ImGui::GetCursorPosY());
+
+        if (keep_range) {
+            ImPlot::SetNextAxisLimits(ImAxis_X1, keep_x_min, keep_x_max, ImPlotCond_Always);
+            x_flags = (ImPlotAxisFlags_)(ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_Lock);
+        }
+
+        ImPlot::BeginPlot(title.c_str(), ImVec2(-1, 0), 0);
+        ImPlot::SetupLegend(ImPlotLocation_NorthEast);
+        ImPlot::SetupAxis(ImAxis_X1, nullptr, x_flags);
+        ImPlot::SetupAxis(ImAxis_Y1, nullptr, y_flags);
+
+        /* ---------------------------- Draglines --------------------------- */
+        ImPlot::DragLineX(id_vline_1, &v_line_1_pos, ImVec4(1, 1, 0, 1), 2.0f);
+        ImPlot::DragLineX(id_vline_2, &v_line_2_pos, ImVec4(0.5, 1, 0.5, 1), 2.0f);
+        if (i == 0) {
+            DragLineShowLabel(plot_y_pos[i]);
+        }
+        /* -------------------------- End Draglines ------------------------- */
+
+        for (auto& [signal_name, is_enabled] : layout::subplots_map[i]) {
+            if (is_enabled) {
+                std::vector<double> time_dec =
+                    Decimate(GetData()->time, decimation_data.visible_min_idx, decimation_data.visible_max_idx,
+                             (int)(decimation_data.decimation_factor + 0.5f));
+                std::vector<double> val =
+                    Decimate(GetData()->signals[signal_name], decimation_data.visible_min_idx, decimation_data.visible_max_idx,
+                             (int)(decimation_data.decimation_factor + 0.5f));
+                ImPlot::PlotStairs(signal_name.c_str(), time_dec.data(), val.data(), val.size());
+            }
+        }
+
+        x_range = ImPlot::GetPlotLimits().X;
+        ImPlot::EndPlot();
+    }
+
+    // reset freeze x range flag so it is only done once
+    keep_range = false;
+
+    ImPlot::EndSubplots();
+
+    CursorDataTable(plot_y_pos, value_column_size);
 
     ImGui::EndGroup();
 
