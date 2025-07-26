@@ -283,6 +283,11 @@ void MainWindow(ImGuiIO& io) {
                                                 static_cast<int>(decimation_data.decimation_factor + 0.5f));
         std::vector<double> val = Decimate(GetData()->signals[signal_name], decimation_data.visible_min_idx, decimation_data.visible_max_idx,
                                            static_cast<int>(decimation_data.decimation_factor + 0.5f));
+        // replace the first value with the first visible value, and same for last value, so that auto-range works
+        if (val.size() > 4) {
+            val[0] = val[1];
+            val[val.size()-1] = val[val.size()-2];
+        }
         ImPlot::PlotStairs(signal_name.c_str(), time_dec.data(), val.data(), val.size());
       }
     }
