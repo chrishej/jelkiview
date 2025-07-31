@@ -31,7 +31,8 @@ sources = [
         '#third_party/imgui/src/imgui_demo.cpp',
         '#third_party/implot/implot_items.cpp',
         '#third_party/implot/implot.cpp',
-        '#third_party/ImGuiFileDialog/ImGuiFileDialog.cpp'
+        '#third_party/ImGuiFileDialog/ImGuiFileDialog.cpp',
+        '#third_party/simple_uart.c'
 ]
 objects = third_party_env.Object(sources)
 

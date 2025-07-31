@@ -3,7 +3,7 @@ import os
 ucrt64_path = "C:/msys64/ucrt64/bin"
 
 env = Environment(
-    CXXCOMSTR='\nCompiling $SOURCE',
+    CXXCOMSTR='Compiling $SOURCE',
     LINKCOMSTR='\nLinking $TARGET\n',
     ENV={
         'PATH': ucrt64_path + os.pathsep + os.environ['PATH'],
@@ -14,7 +14,14 @@ env = Environment(
     
 )
 
-env.Append(CXXFLAGS=['-std=c++20', '-static', '-static-libgcc', '-static-libstdc++'])
+env.Append(CXXFLAGS=[
+    '-std=c++20', 
+    '-g',
+    '-static', 
+    '-static-libgcc', 
+    '-static-libstdc++'
+])
+env.Append(CCFLAGS=['-D_WIN32'])
 env.Append(LINKFLAGS=['-static'])
 
 AddOption('--no-lint',

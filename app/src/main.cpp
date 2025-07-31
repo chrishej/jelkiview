@@ -9,6 +9,8 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <thread>
+#include <chrono>
 
 #include "ImGuiFileDialog.h"
 #include "data_cursors.h"
@@ -21,14 +23,22 @@
 #include "math.h"
 #include "rapidcsv.h"
 #include "settings.h"
+#include "serial_back.h"
+#include "serial_front.h"
+#include "serial_back.h"
 
 static void GlfwErrorCallback(int error, const char* description) {
     fprintf(stderr, "GLFW Error %d: %s\n", error, description);
 }
 
-static void RunInitFunctions() { settings::init(); }
+static void RunInitFunctions() { 
+    settings::init(); 
+    serial_back::SerialInit();
+}
 
-static int sleep_time;
+using namespace std::chrono;
+
+milliseconds delay;
 
 // Main code
 int main(int, char**) {
@@ -103,6 +113,7 @@ int main(int, char**) {
 
     RunInitFunctions();
 
+    steady_clock::time_point lastWakeTime = steady_clock::now();
     // Main loop
     while (!glfwWindowShouldClose(window)) {
         // Poll and handle events (inputs, window resize, etc.)
@@ -116,26 +127,52 @@ int main(int, char**) {
         // flags.
         glfwPollEvents();
         if (glfwGetWindowAttrib(window, GLFW_ICONIFIED) != 0) {
-            ImGui_ImplGlfw_Sleep(10);
+            ImGui_ImplGlfw_Sleep(50);
             continue;
         }
 
         glfwSetCursorEnterCallback(window, [](GLFWwindow* win, int entered) {
             (void)win;
-            if (entered)
-                sleep_time = 10;
-            else
-                sleep_time = 100;
+            if (entered && !serial_back::IsLogRunning())
+                delay = std::chrono::milliseconds(10);
+            else if (serial_back::IsLogRunning())
+                delay = std::chrono::milliseconds(75);
+            else 
+                delay = std::chrono::milliseconds(100);
         });
 
-        ImGui_ImplGlfw_Sleep(sleep_time);
+        
+        steady_clock::time_point nextWakeTime = lastWakeTime + delay;
+        std::this_thread::sleep_until(nextWakeTime);
+        lastWakeTime = nextWakeTime;
 
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        MainWindow(io);
+        ImGui::SetNextWindowPos(ImVec2(0, 0));
+        ImGui::SetNextWindowSize(io.DisplaySize);
+        ImGui::Begin("FullScreenWindow", nullptr,
+                    ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+                        ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus |
+                        ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar);
+        if (ImGui::BeginTabBar("MyTabBar")) {
+            if (ImGui::BeginTabItem("Log Viewer")) {
+                ImGui::BeginChild("LogViewerChild", ImVec2(0, 0), false, ImGuiWindowFlags_MenuBar);
+                MainWindow(io);
+                ImGui::EndChild();
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Serial Monitor")) {
+                ImGui::BeginChild("SerialChild", ImVec2(0, 0), false, ImGuiWindowFlags_MenuBar);
+                serial_front::SerialWindow();
+                ImGui::EndChild();
+                ImGui::EndTabItem();
+            }
+            ImGui::EndTabBar();
+        }
+        ImGui::End();
 
         // Rendering
         ImGui::Render();
@@ -151,6 +188,7 @@ int main(int, char**) {
     }
 
     // Cleanup
+    serial_back::DeInit();
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImPlot::DestroyContext();

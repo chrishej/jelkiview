@@ -4,3 +4,4 @@ imgui.ini
 log_looker
 .vscode
 *.o
+logs/
