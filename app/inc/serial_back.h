@@ -8,6 +8,7 @@
 typedef struct {
         uint32_t address;
         size_t size;
+        int frame;
 } VarStruct;
 
 typedef struct {

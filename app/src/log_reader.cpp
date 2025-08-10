@@ -110,7 +110,7 @@ void GetStreamingData() {
 }  // anonymous namespace
 
 Data* GetData() {
-    if (log_source) {
+    if (log_source == LOG_SOURCE_SERIAL) {
         GetStreamingData();
     }
     return &data; 

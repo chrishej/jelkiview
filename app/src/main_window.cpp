@@ -206,14 +206,17 @@ static void CursorDataTable(const std::vector<float>& plot_y_pos, float value_co
   if (vline_2_it != time.begin()) --vline_2_it;
   int vline_2_idx = static_cast<int>(std::distance(time.begin(), vline_2_it));
 
-  double cursor_1_time = GetData()->time[vline_1_idx];
-  double cursor_2_time = GetData()->time[vline_2_idx];
+  double cursor_1_time = 0;
+  double cursor_2_time = 0;
+  if (GetData()->time.size() > 0) {
+    cursor_1_time = GetData()->time[vline_1_idx];
+    cursor_2_time = GetData()->time[vline_2_idx];
+  }
   cursor_delta = std::abs(cursor_2_time-cursor_1_time);
 
   ImGui::SameLine();
   ImGui::BeginGroup();
   for (size_t i = 0; i < layout::subplots_map.size(); ++i) {
-    const auto& subplots_map_i = layout::subplots_map[i];
     ImGui::SetCursorPosY(plot_y_pos[i]);
     ImGui::BeginTable(("Table##" + std::to_string(i)).c_str(), 3, 
       ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings,
@@ -254,7 +257,7 @@ static void CursorDataTable(const std::vector<float>& plot_y_pos, float value_co
     }
 
     // Data rows
-    for (const auto& [signal_name, is_enabled] : subplots_map_i) {
+    for (const auto& [signal_name, is_enabled] : layout::subplots_map[i]) {
       if (is_enabled) {
         ImGui::TableNextRow();
         ImGui::TableSetColumnIndex(0);
@@ -271,7 +274,11 @@ static void CursorDataTable(const std::vector<float>& plot_y_pos, float value_co
           ImGui::Text("%s", GetFormattedValue(GetData()->signals[signal_name][vline_2_idx]).c_str());
         } else {
           // For serial log, show the latest value
-          ImGui::Text("%s", GetFormattedValue(GetData()->signals[signal_name].back()).c_str());
+          std::string cursor_value = "-";
+          if (GetData()->signals[signal_name].size() > 0) {
+            cursor_value = GetFormattedValue(GetData()->signals[signal_name].back());
+          }
+          ImGui::Text("%s", cursor_value.c_str());
         }
       }
     }
@@ -287,7 +294,7 @@ void MainWindow(ImGuiIO& io) {
   const int kVLine2Base = 200;
   const int id_vline_1 = kVLine1Base;
   const int id_vline_2 = kVLine2Base;
-  const float kValueColumnSize = 350.0f;
+  float cursor_table_size = static_cast<float>(settings::GetSettings()->cursor_value_table_size);
   const ImPlotSubplotFlags kSubplotFlags = ImPlotSubplotFlags_LinkAllX;
   const size_t subplot_count = layout::subplots_map.size();
 
@@ -308,7 +315,7 @@ void MainWindow(ImGuiIO& io) {
   CalculateDecimationData(x_range, decimation_data);
 
   ImPlot::BeginSubplots("", static_cast<int>(subplot_count), 1,
-                        ImVec2(io.DisplaySize.x - kValueColumnSize-30, io.DisplaySize.y - 85),
+                        ImVec2(io.DisplaySize.x - cursor_table_size-30, io.DisplaySize.y - 85),
                         kSubplotFlags);
 
   if (keep_range) {
@@ -371,5 +378,5 @@ void MainWindow(ImGuiIO& io) {
   keep_range = false;
 
   ImPlot::EndSubplots();
-  CursorDataTable(plot_y_pos, kValueColumnSize);
+  CursorDataTable(plot_y_pos, cursor_table_size);
 }

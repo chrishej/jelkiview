@@ -186,6 +186,114 @@ namespace {
         }
     }
 
+    std::string GetFormattedValue(double value) {
+        std::string value_str;
+
+        // Read as float, but remove trailing zeros after decimal point
+        value_str = std::to_string(value);
+        if (value_str.find('.') != std::string::npos) {
+            value_str.erase(value_str.find_last_not_of('0') + 1, std::string::npos);
+            if (value_str.back() == '.') {
+            value_str.pop_back();
+            }
+        }
+
+        return value_str;
+    }
+
+    void VariableTable(char search_buf[]){
+        std::vector<const char*> frames = {"frame 0", "frame 1", "frame 2"};
+
+        if (ImGui::BeginTable("MapTable", 6, 
+                ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings)) {
+            ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 25.0f);
+            ImGui::TableSetupColumn("File Name", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("Variable Name", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("Frame", ImGuiTableColumnFlags_WidthFixed, 125.0f);
+            ImGui::TableSetupColumn("Address", ImGuiTableColumnFlags_WidthFixed, 100.0f);
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthFixed, 100.0f);
+            ImGui::TableHeadersRow();
+
+            log = data_logger::GetLogVariables();
+
+            bool selected = false;
+            std::string check_label;
+            int selected_frame_index = 0;
+            for (const auto& [file, vars] : parsed_map) {
+                for (const auto& [varName, varStruct] : vars) {
+                    // Filter by user search
+                    if (strlen(search_buf) > 0 && 
+                        (file.find(search_buf) == std::string::npos && 
+                            varName.find(search_buf) == std::string::npos)) {
+                        continue;
+                    }
+
+                    // Mark the logging variables as selected
+                    if (log_variables.find(varName) != log_variables.end()) {
+                        selected = true;
+                    } else {
+                        selected = false;
+                    }
+
+                    // When log is running, only show the selected variables.
+                    if (serial_back::IsLogRunning() && !selected) {
+                        continue;
+                    }
+
+                    // Get value from log if it exists
+                    std::string value = "-";
+                    if (log.find(varName) != log.end()) {
+                        auto& values = log[varName];
+                        if (!values.empty()) {
+                            value = GetFormattedValue(values.back());
+                        }
+                    }
+
+                    check_label = "##" + varName + "_" + "selected_label";
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+
+                    ImGui::Checkbox(check_label.c_str(), &selected);
+                    // Only allowed to add/remove when not loggning.
+                    if (!serial_back::IsLogRunning()) {
+                        if (selected) {
+                            selected_frame_index = log_variables[varName].frame;
+                            log_variables[varName] = varStruct; // Add to log variables
+                            log_variables[varName].frame = selected_frame_index;
+                        } else {
+                            selected = false;
+                            log_variables.erase(varName); // Remove from log variables
+                        }
+                    }
+
+                    ImGui::TableSetColumnIndex(1);
+                    ImGui::Text("%s", file.c_str());
+                    ImGui::TableSetColumnIndex(2);
+                    ImGui::Text("%s", varName.c_str());
+
+                    ImGui::TableSetColumnIndex(3);
+                    std::string tag = "##PortCombo" + varName;
+                    ImGui::SetNextItemWidth(120.0F);
+                    if (log_variables.contains(varName)) {
+                        selected_frame_index = log_variables[varName].frame;
+                    } else {
+                        selected_frame_index = 0;
+                    }
+                    if(ImGui::Combo(tag.c_str(), &selected_frame_index, frames.data(), frames.size()))
+                    if (log_variables.contains(varName)) {
+                        log_variables[varName].frame = selected_frame_index;
+                    }
+                    
+                    
+                    ImGui::TableSetColumnIndex(4);
+                    ImGui::Text("0x%lx", static_cast<unsigned long>(varStruct.address));
+                    ImGui::TableSetColumnIndex(5);
+                    ImGui::Text("%s", value.c_str());
+                }
+            }
+            ImGui::EndTable();
+        }
+    }
 
     void MapParser() {
         static bool map_file_dialog = false;
@@ -243,85 +351,7 @@ namespace {
                 // table with 
                 // Selected | File name | Variable Name | Address | Size
                 if (!parsed_map.empty()) {
-                    if (ImGui::BeginTable("MapTable", 6, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg)) {
-                        ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 25.0f);
-                        ImGui::TableSetupColumn("File Name", ImGuiTableColumnFlags_WidthStretch);
-                        ImGui::TableSetupColumn("Variable Name", ImGuiTableColumnFlags_WidthStretch);
-                        ImGui::TableSetupColumn("Address", ImGuiTableColumnFlags_WidthFixed, 100.0f);
-                        ImGui::TableSetupColumn("Size", ImGuiTableColumnFlags_WidthFixed, 50.0f);
-                        ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
-                        ImGui::TableHeadersRow();
-
-                        log = data_logger::GetLogVariables();
-
-                        bool selected = false;
-                        std::string check_label;
-                        for (const auto& [file, vars] : parsed_map) {
-                            for (const auto& [varName, varStruct] : vars) {
-                                if (strlen(search_buf) > 0 && 
-                                    (file.find(search_buf) == std::string::npos && 
-                                     varName.find(search_buf) == std::string::npos)) {
-                                    continue; // Skip if search term is not found
-                                }
-                                if (log_variables.find(varName) != log_variables.end()) {
-                                    selected = true;
-                                } else {
-                                    selected = false;
-                                }
-                                if (serial_back::IsLogRunning() && !selected) {
-                                    continue;
-                                }
-                                // Get value from log if it exists
-                                std::string value = "-";
-                                if (log.find(varName) != log.end()) {
-                                    auto& values = log[varName];
-                                    if (!values.empty()) {
-                                        std::regex rx(".*_([A-Za-z0-9]+)$");
-                                        std::smatch match;
-                                        if (std::regex_match(varName, match, rx)) {
-                                            std::string post_fix = match[1];
-                                            std::transform(post_fix.begin(), post_fix.end(), post_fix.begin(),
-                                                [](unsigned char c){ return std::tolower(c); });
-                                                 if (post_fix == "s08") value = std::to_string(static_cast<int8_t>(static_cast<uint8_t>(values.back())));
-                                            else if (post_fix == "u08") value = std::to_string(static_cast<uint8_t >(values.back()));
-                                            else if (post_fix == "s16") value = std::to_string(static_cast<int16_t>(static_cast<uint16_t>(values.back())));
-                                            else if (post_fix == "u16") value = std::to_string(static_cast<uint16_t>(values.back()));
-                                            else if (post_fix == "s32") value = std::to_string(static_cast<int32_t>(static_cast<uint32_t>(values.back())));
-                                            else if (post_fix == "u32") value = std::to_string(static_cast<uint32_t>(values.back()));
-                                            else if (post_fix == "f32") value = std::to_string(values.back());
-                                            else                        value = std::to_string(static_cast<uint32_t>(values.back()));
-                                        } else {
-                                            value = std::to_string(static_cast<uint32_t>(values.back()));
-                                        }
-                                        
-                                    }
-                                }
-
-                                check_label = "##" + varName + "_" + "selected_label";
-                                ImGui::TableNextRow();
-                                ImGui::TableSetColumnIndex(0);
-                                ImGui::Checkbox(check_label.c_str(), &selected);
-                                if (!serial_back::IsLogRunning()) {
-                                    if (selected) {
-                                        log_variables[varName] = varStruct; // Add to log variables
-                                    } else {
-                                        log_variables.erase(varName); // Remove from log variables
-                                    }
-                                }
-                                ImGui::TableSetColumnIndex(1);
-                                ImGui::Text("%s", file.c_str());
-                                ImGui::TableSetColumnIndex(2);
-                                ImGui::Text("%s", varName.c_str());
-                                ImGui::TableSetColumnIndex(3);
-                                ImGui::Text("0x%lx", static_cast<unsigned long>(varStruct.address));
-                                ImGui::TableSetColumnIndex(4);
-                                ImGui::Text("%zu", varStruct.size);
-                                ImGui::TableSetColumnIndex(5);
-                                ImGui::Text("%s", value.c_str());
-                            }
-                        }
-                        ImGui::EndTable();
-                    }
+                    VariableTable(search_buf);
                 } else {
                     ImGui::Text("No map data parsed yet.");
                 }

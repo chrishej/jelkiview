@@ -17,12 +17,12 @@ namespace settings {
 namespace {
 Settings settings = {
     // NOLINT(cert-err58-cpp,fuchsia-statically-constructed-objects,cppcoreguidelines-avoid-non-const-global-variables)
-    // //TODO fix when supporting json settings
     .file_path = "./example_logs",  // file_path
     .header_line_idx = 0,           // header_line_idx
     .time_name = "time",            // time_name
     .separator = ",",               // separator
-    .auto_size_y = false            // auto_size_y
+    .auto_size_y = false,           // auto_size_y
+    .cursor_value_table_size = 400  // obvi
 };
 
 std::string settings_path = "resources/settings.json";
@@ -36,6 +36,8 @@ void SaveSettings() {
 
     settings_out["header_line_idx"] = settings.header_line_idx;
     settings_out["auto_size_y"] = settings.auto_size_y;
+
+    settings_out["cursor_value_table_size"] = settings.cursor_value_table_size;
 
     std::ofstream out(settings_path);
     out << settings_out.dump(4);
@@ -53,6 +55,9 @@ void init() {
         Json settings_json = Json::parse(settings_file);  // NOLINT(misc-const-correctness)
 
         settings.header_line_idx = settings_json["header_line_idx"].get<uint8_t>();
+        if (settings_json.contains("cursor_value_table_size")) {
+            settings.cursor_value_table_size = settings_json["cursor_value_table_size"].get<int>();
+        }
         settings.auto_size_y     = settings_json["auto_size_y"].get<bool>();
 
         std::string temp;
@@ -105,6 +110,11 @@ void ShowSettingsButton() {
 
         if (ImGui::CollapsingHeader("Plot Settings")) {
             ImGui::Checkbox("Auto size y-axis", &(settings.auto_size_y));
+
+            ImGui::Text("Cursor table size");
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(100.0F);
+            ImGui::InputInt("##cursor_table_size", &(settings.cursor_value_table_size), 10, 20);
         }
 
         ImGui::End();
