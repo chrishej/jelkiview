@@ -24,7 +24,7 @@ namespace {
     static char InputBuf[256];
     static bool AutoScroll = true;
     static FileSymbolMap parsed_map;
-    static std::string map_file_path;
+    static std::string elf_file_path;
     std::unordered_map<std::string, VarStruct> log_variables;
     std::unordered_map<std::string, std::vector<double>> log;
 
@@ -32,6 +32,7 @@ namespace {
         std::vector<std::string> ports;
         static int selected_index = 0;
         static int baud_rate;
+        static bool show_settings_window = false;
         ImGui::BeginMenuBar();
 
         if (ImGui::BeginMenu("Widgets")) {
@@ -118,6 +119,7 @@ namespace {
         } else {
             show_port_menu = false;
         }
+
 
         ImGui::EndMenuBar();
     }
@@ -210,7 +212,7 @@ namespace {
             ImGui::TableSetupColumn("File Name", ImGuiTableColumnFlags_WidthStretch);
             ImGui::TableSetupColumn("Variable Name", ImGuiTableColumnFlags_WidthStretch);
             ImGui::TableSetupColumn("Frame", ImGuiTableColumnFlags_WidthFixed, 125.0f);
-            ImGui::TableSetupColumn("Address", ImGuiTableColumnFlags_WidthFixed, 100.0f);
+            ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, 100.0f);
             ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthFixed, 100.0f);
             ImGui::TableHeadersRow();
 
@@ -286,7 +288,8 @@ namespace {
                     
                     
                     ImGui::TableSetColumnIndex(4);
-                    ImGui::Text("0x%lx", static_cast<unsigned long>(varStruct.address));
+                    std::string type = varStruct.type;
+                    ImGui::Text("%s", type.c_str());
                     ImGui::TableSetColumnIndex(5);
                     ImGui::Text("%s", value.c_str());
                 }
@@ -296,7 +299,8 @@ namespace {
     }
 
     void MapParser() {
-        static bool map_file_dialog = false;
+        static bool file_dialog = false;
+        static uint32_t cnt = 0;
         if (show_map_parser) {
             ImGui::Begin("Map Parser", &show_map_parser, ImGuiWindowFlags_NoScrollbar);
 
@@ -304,16 +308,16 @@ namespace {
             ImGui::SameLine();
             // Open file dialog to select map file
             if (ImGui::Button("Open")) {
-                map_file_dialog = true;
+                file_dialog = true;
             }
-            if (map_file_dialog) {
-                ImGuiFileDialog::Instance()->OpenDialog("ChooseFileMap", "Choose File", ".map");
-                map_file_dialog = false;
+            if (file_dialog) {
+                ImGuiFileDialog::Instance()->OpenDialog("ChooseFileMap", "Choose File", ".elf");
+                file_dialog = false;
             }
             if (ImGuiFileDialog::Instance()->Display("ChooseFileMap")) {
                 if (ImGuiFileDialog::Instance()->IsOk()) {
-                    map_file_path = ImGuiFileDialog::Instance()->GetFilePathName();
-                    serial_back::SetMapFilePath(map_file_path);
+                    elf_file_path = ImGuiFileDialog::Instance()->GetFilePathName();
+                    serial_back::SetElfFilePath(elf_file_path);
                 }
                 ImGuiFileDialog::Instance()->Close();
             }
@@ -348,11 +352,27 @@ namespace {
 
             if (ImGui::BeginChild("MapContent", ImVec2(0, 0), false,
                                 ImGuiWindowFlags_HorizontalScrollbar)) {
+                uint32_t dotdot_time = 50;
                 // table with 
                 // Selected | File name | Variable Name | Address | Size
-                if (!parsed_map.empty()) {
+                if (serial_back::IsParsingElfFile()) {
+                    cnt++;
+                    if (cnt < dotdot_time) {
+                        ImGui::Text("Parsing ELF file, please wait");
+                    } else if (cnt < dotdot_time*2) {
+                        ImGui::Text("Parsing ELF file, please wait.");
+                    } else if (cnt < dotdot_time*3) {
+                        ImGui::Text("Parsing ELF file, please wait..");
+                    } else if (cnt < dotdot_time*4) {
+                        ImGui::Text("Parsing ELF file, please wait...");
+                    } else {
+                        cnt = 0; // Reset counter after a few seconds
+                    }  
+                } else if (!parsed_map.empty()) {
+                    cnt = 0;
                     VariableTable(search_buf);
                 } else {
+                    cnt = 0;
                     ImGui::Text("No map data parsed yet.");
                 }
                 ImGui::EndChild();

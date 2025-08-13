@@ -9,6 +9,7 @@ typedef struct {
         uint32_t address;
         size_t size;
         int frame;
+        std::string type;
 } VarStruct;
 
 typedef struct {
@@ -21,11 +22,16 @@ typedef struct {
     uint64_t latest_timestamp;
     std::vector<FrameVarStruct> variables;
 } FrameStruct;
+typedef struct {
+    std::string nm;
+    std::string addr2line;
+    std::string elf_file_path;
+} SerialBack_Settings;
 
 // {file : {variable_name : .address, .size}}
 using FileSymbolMap = std::unordered_map<std::string, std::unordered_map<std::string, VarStruct>>;
 namespace serial_back {
-    void SetMapFilePath(const std::string& path);
+    void SetElfFilePath(const std::string& path);
     bool Send(const std::vector<uint8_t>& data);
     void GetPorts(std::vector<std::string>& ports);
     bool SetPortName(const std::string& port);
@@ -40,7 +46,9 @@ namespace serial_back {
     void StartLog(std::unordered_map<std::string, VarStruct> log_variables);
     void StopLog();
     bool IsLogRunning();
+    bool IsParsingElfFile();
     FileSymbolMap GetParsedMap();
+    SerialBack_Settings* GetSettings();
 
 } // namespace serial_back
 

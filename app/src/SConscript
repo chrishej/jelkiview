@@ -80,7 +80,8 @@ if not GetOption('no_lint'):
 
 to_release = [
     "jelkiview.exe",
-    "#resources/"
+    "#resources/",
+    "#imgui.ini",
 ]
 release_targets = []
 for item in to_release:

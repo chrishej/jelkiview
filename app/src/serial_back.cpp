@@ -47,10 +47,11 @@ namespace {
     bool                serial_thread_running   = false;
     bool                serial_thread_exit      = false;
     bool                log_running             = false;
+    bool                parsing_elf_file        = false;
     int                 baud_rate               = 250000;
     uint8_t             buffer[0x3FF+1];
     std::string         port_name               = "COM5";
-    std::string         map_file_path           = "";
+    SerialBack_Settings settings = {.nm = "", .addr2line = "", .elf_file_path = ""};
 
     // Indexed with <enum>CommandIndex
     std::vector<CommandStruct> command_list = {
@@ -69,7 +70,6 @@ namespace {
         // address size address size address size ...
         // Send everything msb first
         std::vector<std::vector<uint8_t>> frames_command(nr_of_frames);
-        int frame_idx = 0;
 
         frames.clear();
 
@@ -114,7 +114,7 @@ namespace {
         }
 
         for (int i=0; i<nr_of_frames; i++) {
-            for (int j=0; j<frames_command[i].size(); j++) {
+            for (size_t j=0; j<frames_command[i].size(); j++) {
                 command_buffer.push_back(frames_command[i][j]);
             }
         }
@@ -281,18 +281,18 @@ namespace {
      * Checks if the timestamp of the current map file is newer than the 
      * timestamp from when the file was parsed.
      */
-    bool MapFileChanged() {
+    bool ElfFileChanged() {
         static std::filesystem::file_time_type last_write_time;
         static bool error_thrown = false; // to not get error msg many times
-        std::filesystem::path file_path(map_file_path);
-        if (map_file_path.empty()) {
+        std::filesystem::path file_path(settings.elf_file_path);
+        if (settings.elf_file_path.empty()) {
             return false; // No path provided
         }
         if (!std::filesystem::exists(file_path)) {
             if (!error_thrown)
-                serial_front::AddLog("%s ERROR: Map file %s does not exist.\n", ERROR_CHAR, map_file_path.c_str());
+                serial_front::AddLog("%s ERROR: elf file %s does not exist.\n", ERROR_CHAR, settings.elf_file_path.c_str());
             error_thrown = true;
-            map_file_path = "";
+            //elf_file_path = "";
             parsed_map.clear();
             return false; // File does not exist
         }
@@ -305,94 +305,177 @@ namespace {
         return false; // No change detected
     }
 
-    /*
-     * Parses a map file to find the 
-     * name, file, address, and size of variables in bss.
-     */
-    FileSymbolMap ParseMapFile() {
-        std::ifstream mapFile(map_file_path);
+
+    std::string GetTypeFromFile(const std::string& file_path) {
+        std::vector<std::string> variable_types = {
+            "uint8_t", "uint16_t", "uint32_t", "int8_t", "int16_t", "int32_t",
+            "float", "double", "char", "bool"
+        };
+        // string looks like: C:/path/to/file.c:72
+        // open the file and read the line number
+        // have to clean the path to remove the line number
+        std::regex path_regex(R"((.*):\d+)");
+        std::smatch match;
+        std::string cleaned_path;
+        if (std::regex_search(file_path, match, path_regex)) {
+            cleaned_path = match[1].str();
+        } else {
+            return "uint32_t"; // Default type if no match found
+        }
+
+        std::ifstream file(cleaned_path);
+        if (!file.is_open()) {
+            serial_front::AddLog("%s ERROR: Could not open file %s\n", ERROR_CHAR, cleaned_path.c_str());
+            return "uint32_t";
+        }
+
+        // Get the line to read from the path
+        std::regex line_regex(R"(:(\d+)$)");
+        uint32_t line_number = 0;
+        if (std::regex_search(file_path, match, line_regex)) {
+            line_number = std::stoul(match[1].str());
+        } else {
+            serial_front::AddLog("%s ERROR: Could not extract line number from file path %s\n", ERROR_CHAR, file_path.c_str());
+            return "uint32_t"; // Default type if no line number found
+        }
+
+        // Read the specified line
         std::string line;
+        for (uint32_t i = 0; i < line_number && std::getline(file, line); ++i) {
+            // Skip lines until we reach the desired line number
+        }
+        file.close();
 
-        FileSymbolMap groupedVars;
-        std::string lastFile;
-        std::string pendingVarName = "";
+        // Go though each word in the line and check if it matches a type
+        std::istringstream iss(line);
+        std::string word;
+        while (iss >> word) {
+            for (const auto& type : variable_types) {
+                if (word == type) {
+                    std::cout << "Found type: " << type << " in file: " << cleaned_path << ", line: " << line_number << "\n";
+                    std::cout << "      " << line << "\n";
+                    return type; // Return the first matching type
+                }
+            }
+        }
 
-        std::string address_str;
-        uint32_t size;
-        std::string filepath_str;
-        std::string variable_name;
+        return "uint32_t";
+    }
 
-        int line_num = 0;
-        while (std::getline(mapFile, line)) {
-            line_num++;
-            // Ignore non-relevant rows. Speeds up execution considerably.
-            if (line.empty()) continue;
-            if (line.rfind(" .group", 0) == 0) continue;
-            if (line.rfind(" .debug", 0) == 0) continue;
-            if (line.rfind(" .text", 0) == 0) continue;
+    // enum for the different columns in the nm output
+    bool ParseElfFile(FileSymbolMap& grouped_variables) {
+        //FileSymbolMap grouped_variables;
+        //!std::string nm          = "C:\\dev\\arm-gnu-toolchain-14.3\\bin\\arm-none-eabi-nm.exe";
+        //!std::string addr2line   = "C:\\dev\\arm-gnu-toolchain-14.3\\bin\\arm-none-eabi-addr2line.exe";
+        //!std::string elf_file_path = "C:\\dev\\stm\\tx2\\Build\\test.elf";
 
-            std::smatch match;
+        // Check if elf file path is set
+        if (settings.elf_file_path.empty()) {
+            serial_front::AddLog("%s ERROR: ELF file path is not set.\n", ERROR_CHAR);
+            return false;
+        }
+        // check elf file exists
+        if (!std::filesystem::exists(settings.elf_file_path)) {
+            serial_front::AddLog("%s ERROR: ELF file %s does not exist.\n", ERROR_CHAR, settings.elf_file_path.c_str());
+            return false;
+        }
+        // Check if nm is set
+        if (settings.nm.empty()) {
+            serial_front::AddLog("%s ERROR: nm command is not set.\n", ERROR_CHAR);
+            return false;
+        }
+        // check if nm exists
+        if (!std::filesystem::exists(settings.nm)) {
+            serial_front::AddLog("%s ERROR: nm command %s does not exist.\n", ERROR_CHAR, settings.nm.c_str());
+            return false;
+        }
+        // Check if addr2line is set
+        if (settings.addr2line.empty()) {
+            serial_front::AddLog("%s ERROR: addr2line command is not set.\n", ERROR_CHAR);
+            return false;
+        }
+        // check if addr2line exists
+        if (!std::filesystem::exists(settings.addr2line)) {
+            serial_front::AddLog("%s ERROR: addr2line command %s does not exist.\n", ERROR_CHAR, settings.addr2line.c_str());
+            return false;
+        }
 
-            // only bss variable on line, address and size on next line e.g.
-            // .bss.my_variable                     <-- Finds this.
-            //              0x20000000 0x00000004
-            std::regex bssVarLine(R"( *\.bss\.([^\s]+) *$)");
-            if (std::regex_search(line, match, bssVarLine)) {
-                pendingVarName = match[1];
+        std::string cmd = settings.nm + " -S " + settings.elf_file_path;
+        std::array<char, 128> res_buffer;
+
+        std::shared_ptr<FILE> pipe(popen(cmd.c_str(), "r"), pclose);
+        if (!pipe) {
+            serial_front::AddLog("%s ERROR: Failed to run command: %s\n", ERROR_CHAR, cmd.c_str());
+            return false;
+        }
+
+        while (fgets(res_buffer.data(), res_buffer.size(), pipe.get()) != nullptr) {
+            std::string line(res_buffer.data());
+            std::istringstream iss(line);
+            std::string symbol;
+            std::string size_str;
+            std::string type;
+            std::string address_str;
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Allow other threads to run
+
+            // Parse the line
+            if (!(iss >> address_str >> size_str >> type >> symbol)) {
+                continue; // Skip lines that do not match the expected format
+            }
+
+            if (type != "B" && type != "b" && type != "D" && type != "d") {
                 continue;
             }
-            // .bss.my_variable                     
-            //              0x20000000 0x00000004   <-- Finds this.
-            std::regex objectLine(R"( *0x([0-9a-fA-F]+) +0x([0-9a-fA-F]+) +(.+\.o))");
-            if (!pendingVarName.empty() && std::regex_search(line, match, objectLine)) {
-                address_str     = match[1];
-                size            = std::stoul(match[2], nullptr, 16);
-                filepath_str    = match[3];
-                variable_name   = pendingVarName;
-                pendingVarName.clear();
+
+            // get file from addr2line
+            std::string addr2line_cmd = settings.addr2line + " -e " + settings.elf_file_path + " " + address_str;
+            std::array<char, 128> addr2line_buffer;
+            std::shared_ptr<FILE> addr2line_pipe(popen(addr2line_cmd.c_str(), "r"), pclose);
+            if (!addr2line_pipe) {
+                serial_front::AddLog("%s ERROR: Failed to run command: %s\n", ERROR_CHAR, addr2line_cmd.c_str());
+                continue;
+            }
+            std::string file_path;
+            if (fgets(addr2line_buffer.data(), addr2line_buffer.size(), addr2line_pipe.get()) != nullptr) {
+                file_path = std::string(addr2line_buffer.data());
+                // Remove trailing newline
+                file_path.erase(std::remove(file_path.begin(), file_path.end(), '\n'), file_path.end());
+            } else {
+                serial_front::AddLog("%s ERROR: Failed to get file path for address: %s\n", ERROR_CHAR, address_str.c_str());
+                continue;
             }
 
-            // bss variable, address, and size on one line.
-            // .bss.my_variable 0x20000000 0x00000004
-            std::regex oneLine(R"( *\.bss\.([^\s]+) +0x([0-9a-fA-F]+) +0x([0-9a-fA-F]+) +(.+\.o))");
-            if (variable_name.empty() && std::regex_search(line, match, oneLine)) {
-                variable_name   = match[1];
-                address_str     = match[2];
-                size            = std::stoul(match[3], nullptr, 16);
-                filepath_str    = match[4];
-
-
-                std::string filePathStr = match[4];
-                std::filesystem::path filePath(filePathStr);
-                std::string fileName = filePath.filename().stem().string();
+            // file_path looks like: /path/to/file.c:72
+            // use regex to extract the file name
+            std::regex file_regex(R"(([^/\\]+):\d+)");
+            std::smatch file_match;
+            std::string variable_type = "uint32_t";
+            if (std::regex_search(file_path, file_match, file_regex)) {
+                variable_type = GetTypeFromFile(file_path);
+                file_path = file_match[1]; // Get the file name without the line number
+            } else {
+                file_path = "-- (declared static?)";
             }
 
-            // Currently only support logging max 4 bytes
-            // TODO handle 4 byte limitation in some other way.
-            if (!variable_name.empty() && (size <= 4)) {
-                std::filesystem::path filepath(filepath_str);
-
-                // Keep only file name,
-                // /path/to/file.o ==> file
-                std::string file_name = filepath.filename().stem().string();
-
-                groupedVars[file_name][variable_name] = {
-                    .address = std::stoul(address_str, nullptr, 16),
-                    .size    = size,
-                    .frame   = 0
-                };
-            }
-            variable_name.clear();
+            grouped_variables[file_path][symbol] = {
+                .address = std::stoul(address_str, nullptr, 16),
+                .size    = std::stoul(size_str, nullptr, 16),
+                .frame   = 0, // Frame is not used in this context
+                .type    = variable_type
+            };
         }
-        return groupedVars;
+        return true;
     }
 
     void SaveSettings() {
         std::string settings_path = "resources/serial_settings.json";
         Json settings_out;
-        settings_out["map_file_path"] = map_file_path;
         settings_out["baud_rate"] = baud_rate;
         settings_out["port_name"] = port_name;
+        settings_out["elf_file_path"] = settings.elf_file_path;
+        settings_out["nm"] = settings.nm;
+        settings_out["addr2line"] = settings.addr2line;
         std::ofstream out(settings_path);
         out << settings_out.dump(4);
         out.close();
@@ -406,21 +489,54 @@ namespace {
         std::ifstream settings_file(settings_path);
         Json settings_json = Json::parse(settings_file);  // NOLINT(misc-const-correctness)
 
-        map_file_path = settings_json.value("map_file_path", "");
+        settings_file.close();
         baud_rate = settings_json.value("baud_rate", 250000);
         port_name = settings_json.value("port_name", "COM5");
+
+        if (settings_json.contains("elf_file_path")) {
+            settings.elf_file_path = settings_json["elf_file_path"];
+            // if empty, set to "-"
+            if (settings.elf_file_path.empty()) {
+                settings.elf_file_path = "-";
+            }
+        } else {
+            settings.elf_file_path = "-";
+        }
+        if (settings_json.contains("nm")) {
+            settings.nm = settings_json["nm"];
+            // if empty, set to "-"
+            if (settings.nm.empty()) {
+                settings.nm = "-";
+            }
+        } else {
+            settings.nm = "-";
+        }
+        if (settings_json.contains("addr2line")) {
+            settings.addr2line = settings_json["addr2line"];
+            // if empty, set to "-"
+            if (settings.addr2line.empty()) {
+                settings.addr2line = "-";
+            }
+        } else {
+            settings.addr2line = "-";
+        }
     }
 
     void SlowTask() {
-        static bool map_file_changed_old = false;
-        bool map_file_changed;
+        static bool elf_file_changed_old = false;
+        bool elf_file_changed;
+
         while(!serial_thread_exit) {
-            map_file_changed = MapFileChanged();
-            if ( map_file_changed_old && !map_file_changed) {
-                parsed_map = ParseMapFile();
+            elf_file_changed = ElfFileChanged();
+
+            if ( (elf_file_changed_old && !elf_file_changed) ) {
+                parsing_elf_file = true;
+                ParseElfFile(parsed_map);
+                parsing_elf_file = false;
             }
 
-            map_file_changed_old = map_file_changed;
+            elf_file_changed_old = elf_file_changed;
+
             SaveSettings();
 
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -432,8 +548,8 @@ namespace {
 } // namespace anonymous
 
 namespace serial_back {
-    void SetMapFilePath(const std::string& path) {
-        map_file_path = path;
+    void SetElfFilePath(const std::string& path) {
+        settings.elf_file_path = path;
     }
 
     bool Send(const std::vector<uint8_t>& data) {
@@ -579,7 +695,15 @@ namespace serial_back {
         return log_running;
     }
 
+    bool IsParsingElfFile() {
+        return parsing_elf_file;
+    }
+
     FileSymbolMap GetParsedMap() {
         return parsed_map;
+    }
+
+    SerialBack_Settings* GetSettings() {
+        return &settings;
     }
 } // namespace serial_back
