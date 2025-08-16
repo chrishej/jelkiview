@@ -9,7 +9,9 @@ env.Append(LIBPATH=['../third_party/glfw/lib-mingw-w64'])
 env.Append(LIBS=['glfw3', 'opengl32', 'gdi32', 'shell32', 'setupapi', 'uuid'])
 
 env.Append(CPPPATH=[
-    '#app/inc/',
+    "#source/app/serial_monitor/inc/",
+    "#source/app/log_viewer/inc/",
+    "#source/app/main/inc/",
     ])
 
 env.Append(CXXFLAGS=[
@@ -37,18 +39,23 @@ env.Append(CXXFLAGS=[
 
 #env.Append(CCFLAGS=['/MD', '/nologo', '/std:c++20', '/EHsc', '/W4', '/diagnostics:column', '/diagnostics:caret'])
 
-sources = [
-        'main.cpp',
-        'settings.cpp',
-        'log_reader.cpp',
-        'data_cursors.cpp',
-        'main_window.cpp',
-        "licenses.cpp",
-        "layout.cpp",
-        "serial_back.cpp",
-        "serial_front.cpp",
-        "data_logger.cpp",
-]
+#!sources = [
+#!        'src/main.cpp',
+#!        'src/settings.cpp',
+#!        'src/log_reader.cpp',
+#!        'src/data_cursors.cpp',
+#!        'src/main_window.cpp',
+#!        "src/licenses.cpp",
+#!        "src/layout.cpp",
+#!        "src/serial_back.cpp",
+#!        "src/serial_front.cpp",
+#!        "src/data_logger.cpp",
+#!        "src/performance_analysis.cpp",
+#!]
+sources  = Glob("src/*.cpp")
+sources += Glob("serial_monitor/src/*.cpp")
+sources += Glob("log_viewer/src/*.cpp")
+sources += Glob("main/src/*.cpp")
 
 sources_lint = [
     'settings.cpp',

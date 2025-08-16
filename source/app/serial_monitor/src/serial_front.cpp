@@ -13,6 +13,7 @@
 #include "ImGuiFileDialog.h"
 #include "data_logger.h"
 #include <regex>
+#include "elf_parser.h"
 
 namespace {
     bool show_console = true;
@@ -270,10 +271,10 @@ namespace {
 
                     ImGui::TableSetColumnIndex(1);
                     ImGui::Text("%s", file.c_str());
-                    ImGui::TableSetColumnIndex(2);
+                    ImGui::TableSetColumnIndex(2); // Variable Name column
                     ImGui::Text("%s", varName.c_str());
 
-                    ImGui::TableSetColumnIndex(3);
+                    ImGui::TableSetColumnIndex(3); // Frame column
                     std::string tag = "##PortCombo" + varName;
                     ImGui::SetNextItemWidth(120.0F);
                     if (log_variables.contains(varName)) {
@@ -287,9 +288,15 @@ namespace {
                     }
                     
                     
-                    ImGui::TableSetColumnIndex(4);
-                    std::string type = varStruct.type;
-                    ImGui::Text("%s", type.c_str());
+                    ImGui::TableSetColumnIndex(4); // Type column
+                    VariableType type = varStruct.type;
+                    std::string type_str;
+                    if (type < VariableType::TYPE_NUM_OF_TYPES) {
+                        type_str = elf_parser::GetVariableTypes()[type];
+                    } else {
+                        type_str = "Unknown";
+                    }
+                    ImGui::Text("%s", type_str.c_str());
                     ImGui::TableSetColumnIndex(5);
                     ImGui::Text("%s", value.c_str());
                 }

@@ -32,4 +32,4 @@ AddOption('--no-lint',
 
 third_objs, third_env = SConscript('third_party/SConscript', exports='env')
 
-SConscript('app/src/SConscript', variant_dir='build', exports={'env': third_env, 'objects': third_objs})
+SConscript('source/app/SConscript', variant_dir='build', duplicate=0, exports={'env': third_env, 'objects': third_objs})

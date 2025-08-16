@@ -13,10 +13,12 @@
 #include <unordered_map>
 #include <vector>
 #include <iostream>
+#include <filesystem>
 
 #include "log_reader.h"
 #include "serial_back.h"
 #include "serial_front.h"
+#include "performance_analysis.h"
 
 namespace {
 std::unordered_map<std::string, std::vector<double>> log_variables;
@@ -74,6 +76,30 @@ double PerformTypeCast(uint32_t rx_val, const std::string& variable_name) {
     }
     return value;
 }
+
+double TypeCast(uint32_t rx_val, VariableType type) {
+    switch (type) {
+        case VariableType::TYPE_UINT8:
+            return static_cast<double>(static_cast<uint8_t>(rx_val));
+        case VariableType::TYPE_UINT16:
+            return static_cast<double>(static_cast<uint16_t>(rx_val));
+        case VariableType::TYPE_UINT32:
+            return static_cast<double>(rx_val);
+        case VariableType::TYPE_INT8:
+            return static_cast<double>(static_cast<int8_t>(rx_val));
+        case VariableType::TYPE_INT16:
+            return static_cast<double>(static_cast<int16_t>(rx_val));
+        case VariableType::TYPE_INT32:
+            return static_cast<double>(static_cast<int32_t>(rx_val));
+        case VariableType::TYPE_FLOAT:
+            return static_cast<double>(*reinterpret_cast<float*>(&rx_val));
+        case VariableType::TYPE_DOUBLE:
+            return static_cast<double>(*reinterpret_cast<double*>(&rx_val));
+        default:
+            return static_cast<double>(rx_val); // Default for unknown types
+    }
+}
+
 }  // namespace
 
 namespace data_logger {
@@ -104,16 +130,16 @@ std::unordered_map<std::string, std::vector<double>> GetLogVariables() {
 
 void LogFrame(const FrameStruct& frame) {
     std::lock_guard<std::mutex> const lock(log_mutex);
-    const float ms_to_sec = 1000.0F;
+    const float us_to_sec = 1e6F;
     
     if (log_variables["Time"].empty()) {
         // The time stamp from CU is probably a free running timer, sp the first frame will most
         // likely not start at 0.
         // TODO(chejd): time scaling from some config with CU
-        base_time = static_cast<float>(frame.latest_timestamp) / ms_to_sec;  // Convert to seconds
+        base_time = static_cast<float>(frame.latest_timestamp) / us_to_sec;  // Convert to seconds
     }
 
-    float log_time = (static_cast<float>(frame.latest_timestamp) / ms_to_sec) - base_time;
+    float log_time = (static_cast<float>(frame.latest_timestamp) / us_to_sec) - base_time;
     // If the log is empty, set first value for all variables to 0.0
     // Else if the time is new, append new time and copy the last value for all variables
     if (log_variables["Time"].empty()) {
@@ -134,9 +160,12 @@ void LogFrame(const FrameStruct& frame) {
 
     // Replace the last value for variables in frame
     for (const auto& var : frame.variables) {
-        double const value = PerformTypeCast(var.latest_rx, var.name);
+    performance_analysis::Start(performance_analysis::AnalysisIndex::FUNC_LOG_FRAME);
+        double const value = TypeCast(var.latest_rx, var.type);
+    performance_analysis::End(performance_analysis::AnalysisIndex::FUNC_LOG_FRAME);
         log_variables[var.name].back() = value;
     }
+
 }
 
 /*
@@ -149,6 +178,11 @@ void SaveLog() {
     std::unordered_map<std::string, std::vector<double>> log_variables_copy =
         DeepCopyLogVariables();
 
+    // Check if path exists, if not create it
+    if (!std::filesystem::exists("logs")) {
+        std::filesystem::create_directory("logs");
+    }
+    
     std::ofstream log_file(log_file_path);
     if (!log_file.is_open()) {
         serial_front::AddLog("%s ERROR: Could not open log file %s\n", ERROR_CHAR,
@@ -167,9 +201,9 @@ void SaveLog() {
         for (const auto& var : log_variables_copy) {
             log_file << var.second[i];
             // No comma for last variable column
-            if (i < num_rows - 1) {
+            //if (i < num_rows - 1) {
                 log_file << ",";
-            }
+            //}
         }
         log_file << "\n";
     }

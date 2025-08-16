@@ -4,18 +4,35 @@
 #include <vector>
 #include <cstdint>
 #include <unordered_map>
+//#include "elf_parser.h"
+
+typedef enum {
+        TYPE_UINT8,
+        TYPE_UINT16,
+        TYPE_UINT32,
+        TYPE_INT8,
+        TYPE_INT16,
+        TYPE_INT32,
+        TYPE_FLOAT,
+        TYPE_DOUBLE,
+        TYPE_CHAR,
+        TYPE_BOOL,
+        TYPE_NUM_OF_TYPES,
+        TYPE_UNKNOWN
+} VariableType;
 
 typedef struct {
         uint32_t address;
         size_t size;
         int frame;
-        std::string type;
+        VariableType type;
 } VarStruct;
 
 typedef struct {
     std::string name;
     size_t size;
     uint32_t latest_rx;
+    VariableType type;
 } FrameVarStruct;
 typedef struct {
     int id;
@@ -28,8 +45,8 @@ typedef struct {
     std::string elf_file_path;
 } SerialBack_Settings;
 
-// {file : {variable_name : .address, .size}}
-using FileSymbolMap = std::unordered_map<std::string, std::unordered_map<std::string, VarStruct>>;
+// {file : {variable_name : .address, .size, .frame, .type}}
+typedef std::unordered_map<std::string, std::unordered_map<std::string, VarStruct>> FileSymbolMap;
 namespace serial_back {
     void SetElfFilePath(const std::string& path);
     bool Send(const std::vector<uint8_t>& data);
