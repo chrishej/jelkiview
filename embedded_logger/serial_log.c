@@ -68,8 +68,6 @@ typedef struct {
 void insert_byte(uint8_t byte);
 void RunCommandHandler(uint8_t byte);
 
-void EXTI0_IRQHandler();
-
 bool CH_Invalid(uint8_t byte, uint8_t tx_data[], uint16_t * tx_size);
 //!bool CH_Toggle_Led(uint8_t byte, uint8_t tx_data[], uint16_t * tx_size);
 bool CH_Start_Log(uint8_t byte, uint8_t tx_data[], uint16_t * tx_size);
@@ -79,17 +77,19 @@ static bool CH_Setup_Frame_2(uint8_t byte, uint8_t tx_data[], uint16_t * tx_size
 /************************************
  * PRIVATE VARIABLES
  ************************************/
-static uint8_t  rx_data = 0;
-static uint8_t  rx_buffer[RX_BUFFER_MASK+1]; // +1 to allow for wrapping around
-static int      rx_handle_idx = 0;
+uint8_t  rx_data = 0;
+uint8_t  rx_buffer[RX_BUFFER_MASK+1]; // +1 to allow for wrapping around
+int      rx_handle_idx = 0;
 // Points to the next index where data will be written, 
 // i.e. rx_head-1 is the last recieved byte
-static int      rx_head = 0;
-static uint8_t  last_byte = 0x00;
-static bool     log_started = false;
-static uint8_t  nr_of_frames = 0;
-static uint32_t log_time    = 0;
-uint8_t tick_size_10us = 100; // [10*us]
+int      rx_head = 0;
+uint8_t  last_byte = 0x00;
+bool     log_started = false;
+uint8_t  nr_of_frames = 0;
+uint32_t log_time    = 0;
+uint8_t tick_size_10us = 5; // [10*us]
+int8_t pending_frame = -1;
+bool frame_pending[2] = {false, false};
 
 uint8_t  SerialLog_tx_frame     = 0;
 
@@ -128,12 +128,6 @@ const int nr_of_ch = sizeof(command_handlers) / sizeof(command_handlers[0]);
  * GLOBAL FUNCTIONS
  ************************************/
 void SerialLog_Init() {
-    SYSCFG->EXTICR[0] = SYSCFG_EXTICR1_EXTI0_PA;
-    EXTI->RTSR1 |= (1 << 0);
-    EXTI->IMR1 |= (1 << 0);
-    HAL_NVIC_SetPriority(EXTI0_IRQn, 10, 0);
-    HAL_NVIC_EnableIRQ(EXTI0_IRQn);
-
     HAL_UART_Receive_IT(&huart3, &rx_data, 1);
 }
 
@@ -159,36 +153,22 @@ void SerialLog_IncrementTick() {
     log_time += tick_size_10us;
 }
 
-void EXTI0_IRQHandler() {
-    uint8_t tx_frame;
-
-    // Detect SWI
-    bool is_swi = (EXTI->SWIER1 & (1<<0)) != 0;
-
-    // Save the frame id before clearing interrupt
-    tx_frame = SerialLog_tx_frame;
-
-    // Clear interrupt
-    EXTI->PR1 = GPIO_PIN_0;
-
-    if (is_swi)
-    {
-        SerialLog_TransmittFrame(log_time, tx_frame, 10);
+void SerialLog_TransmitPendingFrame() {
+    for (int i = 0; i < 1; i++) {
+        if (frame_pending[i]) {
+            //SerialLog_TransmittFrame(i);
+        }
     }
 }
 
 /*
  * Transmitts one frame.
- * Is called from OS tasks. Note: Should not be called from IRQ. Rather store what is to be logged from IRQ into a frame and set a flag to transmit.
- * 
- * The caller has to provide the time, since if it is called from TIM irq some calculations might have to be done to get the time.
- * 
- * This function uses OS utility of mutex, since the point is that it can be called from mutilple threads. If using other OS, the mutex handling has to be changed but most OS have similair handling. The threadx priority inheritance must be specified, while in freertos it is on by default.
- * The caller specifies a max wait time for the mutex, aga
  */
-void SerialLog_TransmittFrame(uint32_t time, uint16_t frame_id, uint32_t wait_option) {
-    uint8_t big_endian_copy[4];
-    uint8_t preamble[5];
+void SerialLog_TransmittFrame(uint16_t frame_id) {
+    uint8_t  tx_buffer[0xFF+1];
+    uint16_t tx_buf_idx = 0;
+    uint32_t log_time_loc = log_time;
+    uint16_t frame_loc = frame_id;
 
     // With a 10 us time size, we can log (2**32-1)/(1e5)/60 = 715 minutes.
 
@@ -196,29 +176,33 @@ void SerialLog_TransmittFrame(uint32_t time, uint16_t frame_id, uint32_t wait_op
         return;
     }
 
-    __disable_irq();
-
-    if (frames[frame_id].variables_in_frame > 0) {
-        preamble[0] = frame_id;
-        preamble[1] = (log_time >> 24) & 0xFF;
-        preamble[2] = (log_time >> 16) & 0xFF;
-        preamble[3] = (log_time >> 8)  & 0xFF;
-        preamble[4] =  log_time        & 0xFF;
-        HAL_UART_Transmit(&huart3, preamble, 5, 500);
+    if (huart3.gState != HAL_UART_STATE_READY) {
+        __disable_irq();
+        // New pending frame, since we cannot transmit now.
+        frame_pending[frame_loc] = true;
+        __enable_irq();
+        return;
     }
 
-    for (int i=0; i<frames[frame_id].variables_in_frame; i++) {
-        //uint8_t *src = (uint8_t *)frame_vars_2[0][i].address;
-        uint8_t *src = (uint8_t *)frames[frame_id].variables[i].address;
-        uint32_t variable_size = frames[frame_id].variables[i].size;
+    frame_pending[frame_loc] = false; // Clear pending frame, since we are transmitting now.
+
+    if (frames[frame_loc].variables_in_frame > 0) {
+        tx_buffer[tx_buf_idx++] = frame_loc;
+        tx_buffer[tx_buf_idx++] = (log_time_loc >> 24) & 0xFF;
+        tx_buffer[tx_buf_idx++] = (log_time_loc >> 16) & 0xFF;
+        tx_buffer[tx_buf_idx++] = (log_time_loc >> 8)  & 0xFF;
+        tx_buffer[tx_buf_idx++] =  log_time_loc        & 0xFF;
+    }
+
+    for (size_t i=0; i<frames[frame_loc].variables_in_frame; i++) {
+        uint8_t *src = (uint8_t *)frames[frame_loc].variables[i].address;
+        uint32_t variable_size = frames[frame_loc].variables[i].size;
         for (size_t j = 0; j < variable_size; j++) {
-            big_endian_copy[j] = src[variable_size - 1 - j];
+            tx_buffer[tx_buf_idx++] = src[variable_size - 1 - j];
         }
-
-        HAL_UART_Transmit(&huart3, big_endian_copy, variable_size, 500);
     }
 
-    __enable_irq();
+    HAL_UART_Transmit_DMA(&huart3, tx_buffer, tx_buf_idx);
 }
 
 

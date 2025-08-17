@@ -35,48 +35,6 @@ std::unordered_map<std::string, std::vector<double>> DeepCopyLogVariables() {
     return copy;
 }
 
-/*
- * This function performs type casting based on the variable name's postfix.
- * It converts from a raw uint32_t value received from the CU to a double value.
- * Note that the rx_byte is a uint32_t, but this is only to be able to put all types in the same
- * container. The actual value recieved into the uint32_t might be a uint8_t, int8_t, uint16_t,
- * int16_t, uint32_t, int32_t or float. By looking at the variable postfix, we can determine how to
- * cast the value correctly. If no postfix is found, it defaults to uint32_t.
- */
-double PerformTypeCast(uint32_t rx_val, const std::string& variable_name) {
-    double value;
-    const std::regex regex(".*_([A-Za-z0-9]+)$");
-    std::smatch match;
-    if (std::regex_match(variable_name, match, regex)) {
-        std::string post_fix = match[1];
-
-        // Lower case transform
-        std::transform(post_fix.begin(), post_fix.end(), post_fix.begin(),
-                       [](unsigned char chr) { return std::tolower(chr); });
-
-        if (post_fix == "s08") {
-            value = static_cast<double>(static_cast<int8_t>(static_cast<uint8_t>(rx_val)));
-        } else if (post_fix == "u08") {
-            value = static_cast<double>(static_cast<uint8_t>(rx_val));
-        } else if (post_fix == "s16") {
-            value = static_cast<double>(static_cast<int16_t>(static_cast<uint16_t>(rx_val)));
-        } else if (post_fix == "u16") {
-            value = static_cast<double>(static_cast<uint16_t>(rx_val));
-        } else if (post_fix == "s32") {
-            value = static_cast<double>(static_cast<int32_t>(rx_val));
-        } else if (post_fix == "u32") {
-            value = static_cast<double>(rx_val);
-        } else if (post_fix == "f32") {
-            value = static_cast<double>(rx_val);
-        } else {
-            value = static_cast<double>(rx_val);
-        }
-    } else {
-        value = static_cast<double>(rx_val);
-    }
-    return value;
-}
-
 double TypeCast(uint32_t rx_val, VariableType type) {
     switch (type) {
         case VariableType::TYPE_UINT8:
@@ -182,7 +140,7 @@ void SaveLog() {
     if (!std::filesystem::exists("logs")) {
         std::filesystem::create_directory("logs");
     }
-    
+
     std::ofstream log_file(log_file_path);
     if (!log_file.is_open()) {
         serial_front::AddLog("%s ERROR: Could not open log file %s\n", ERROR_CHAR,
