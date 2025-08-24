@@ -15,6 +15,8 @@
 #include <regex>
 #include "elf_parser.h"
 #include "performance_analysis.h"
+#include "data_logger.h"
+#include "log_reader.h"
 
 namespace {
     bool show_console = true;
@@ -29,7 +31,7 @@ namespace {
     static FileSymbolMap parsed_map;
     static std::string elf_file_path;
     std::unordered_map<std::string, VarStruct> log_variables;
-    std::unordered_map<std::string, std::vector<double>> log;
+    Data* log;
 
     void MenuBar() {
         std::vector<std::string> ports;
@@ -222,7 +224,7 @@ namespace {
             ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthFixed, 100.0f);
             ImGui::TableHeadersRow();
 
-            log = data_logger::GetLogVariables();
+            log = data_logger::GetLogData();
 
             bool selected = false;
             std::string check_label;
@@ -250,8 +252,8 @@ namespace {
 
                     // Get value from log if it exists
                     std::string value = "-";
-                    if (log.find(varName) != log.end()) {
-                        auto& values = log[varName];
+                    if (log->signals.find(varName) != log->signals.end()) {
+                        auto& values = log->signals[varName];
                         if (!values.empty()) {
                             value = GetFormattedValue(values.back());
                         }

@@ -96,22 +96,17 @@ void ReadCSV(std::string const& file) {
 }
 
 void GetStreamingData() {
-    std::unordered_map<std::string, std::vector<double>> log = 
-        data_logger::GetLogVariables();
+    Data* data_ptr = data_logger::GetLogData();
 
-    data.time = log["Time"];
-    data.signals.clear();
-    for (const auto& [var_name, var_vec] : log) {
-        if (var_name != "Time") {
-            data.signals[var_name] = log[var_name];
-        }
-    }
+    data.time = data_ptr->time;
+    data.signals = data_ptr->signals;
 }
 }  // anonymous namespace
 
 Data* GetData() {
     if (log_source == LOG_SOURCE_SERIAL) {
-        GetStreamingData();
+        //GetStreamingData();
+        return data_logger::GetLogData();
     }
     return &data; 
 }

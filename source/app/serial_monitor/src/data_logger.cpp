@@ -21,18 +21,16 @@
 #include "performance_analysis.h"
 
 namespace {
-std::unordered_map<std::string, std::vector<double>> log_variables;
 Data log_data;
 std::string log_file_path;
 std::mutex log_mutex;
 float base_time = 0.0F;
 
-std::unordered_map<std::string, std::vector<double>> DeepCopyLogVariables() {
-    std::unordered_map<std::string, std::vector<double>> copy;
+Data DeepCopyLogVariables() {
+    Data copy;
     const std::lock_guard<std::mutex> lock(log_mutex);
-    for (const auto& var : log_variables) {
-        copy[var.first] = var.second;
-    }
+    copy.time = log_data.time;
+    copy.signals = log_data.signals;
     return copy;
 }
 
@@ -63,12 +61,12 @@ double TypeCast(uint32_t rx_val, VariableType type) {
 
 namespace data_logger {
 void init(const std::unordered_map<std::string, VarStruct>& variables) {
-    log_variables.clear();
-    log_variables["Time"] = std::vector<double>();
+    log_data.time.clear();
+    log_data.signals.clear();
     // Set up log variables based on the provided variables.
     // Streaming to trace window needs to know at init which variables to log.
     for (const auto& var : variables) {
-        log_variables[var.first] = std::vector<double>();
+        log_data.signals[var.first] = std::vector<double>();
     }
 
     auto time = std::time(nullptr);
@@ -80,18 +78,15 @@ void init(const std::unordered_map<std::string, VarStruct>& variables) {
     InitSerialStream(variables);
 }
 
-std::unordered_map<std::string, std::vector<double>> GetLogVariables() {
-    // This causes a deepcopy, and issues with concurrent access are avoided by using a mutex.
-    // TODO(chejd): fix this so it is better.
-    std::lock_guard<std::mutex> const lock(log_mutex);
-    return log_variables;
+Data* GetLogData() {
+    return &log_data;
 }
 
 void LogFrame(const FrameStruct& frame) {
     std::lock_guard<std::mutex> const lock(log_mutex);
     const float us_to_sec = 1e6F;
-    
-    if (log_variables["Time"].empty()) {
+
+    if (log_data.time.empty()) {
         // The time stamp from CU is probably a free running timer, sp the first frame will most
         // likely not start at 0.
         // TODO(chejd): time scaling from some config with CU
@@ -101,19 +96,15 @@ void LogFrame(const FrameStruct& frame) {
     float log_time = (static_cast<float>(frame.latest_timestamp) / us_to_sec) - base_time;
     // If the log is empty, set first value for all variables to 0.0
     // Else if the time is new, append new time and copy the last value for all variables
-    if (log_variables["Time"].empty()) {
-        log_variables["Time"].push_back(log_time);
-        for (const auto& var : log_variables) {
-            if (var.first != "Time") {
-                log_variables[var.first].push_back(0.0);
-            }
+    if (log_data.time.empty()) {
+        log_data.time.push_back(log_time);
+        for (const auto& var : log_data.signals) {
+            log_data.signals[var.first].push_back(0.0);
         }
-    } else if (log_time > log_variables["Time"].back()) {
-        log_variables["Time"].push_back(log_time);
-        for (const auto& var : log_variables) {
-            if (var.first != "Time") {
-                log_variables[var.first].push_back(log_variables[var.first].back());
-            }
+    } else if (log_time > log_data.time.back()) {
+        log_data.time.push_back(log_time);
+        for (const auto& var : log_data.signals) {
+            log_data.signals[var.first].push_back(log_data.signals[var.first].back());
         }
     }
 
@@ -122,7 +113,7 @@ void LogFrame(const FrameStruct& frame) {
     performance_analysis::Start(performance_analysis::AnalysisIndex::FUNC_LOG_FRAME);
         double const value = TypeCast(var.latest_rx, var.type);
     performance_analysis::End(performance_analysis::AnalysisIndex::FUNC_LOG_FRAME);
-        log_variables[var.name].back() = value;
+        log_data.signals[var.name].back() = value;
     }
 
 }
@@ -134,8 +125,7 @@ void SaveLog() {
     // TODO(chejd): currently writes all data in a batch. Make it so it can write data
     // incrementally so it can be done continuously while logging. Do a deepcopy of
     // log_variables to avoid issues with concurrent access
-    std::unordered_map<std::string, std::vector<double>> log_variables_copy =
-        DeepCopyLogVariables();
+    Data log_variables_copy = DeepCopyLogVariables();
 
     // Check if path exists, if not create it
     if (!std::filesystem::exists("logs")) {
@@ -149,15 +139,17 @@ void SaveLog() {
         return;
     }
 
-    for (const auto& var : log_variables_copy) {
+    log_file << "Time,";
+    for (const auto& var : log_variables_copy.signals) {
         log_file << var.first << ",";
     }
     log_file << "\n";
 
     // Write data
-    size_t const num_rows = log_variables_copy.begin()->second.size();
+    size_t const num_rows = log_variables_copy.signals.begin()->second.size();
     for (size_t i = 0; i < num_rows; ++i) {
-        for (const auto& var : log_variables_copy) {
+        log_file << log_variables_copy.time[i] << ",";
+        for (const auto& var : log_variables_copy.signals) {
             log_file << var.second[i];
             // No comma for last variable column
             //if (i < num_rows - 1) {
