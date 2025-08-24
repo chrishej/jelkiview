@@ -2,6 +2,7 @@
 #define PERFORMANCE_ANALYSIS_H_
 
 #include <chrono>
+#include <vector>
 
 namespace performance_analysis {
     typedef struct {
@@ -10,12 +11,19 @@ namespace performance_analysis {
         std::chrono::time_point<std::chrono::high_resolution_clock> end_time;
         std::chrono::milliseconds::rep elapsed_time;
         std::chrono::milliseconds::rep tick_time;
+
+        std::chrono::milliseconds::rep elapsed_time_LP;
+        std::chrono::milliseconds::rep tick_time_LP;
+
+        std::vector<std::chrono::milliseconds::rep> elapsed_time_vec;
+        std::vector<std::chrono::milliseconds::rep> tick_time_vec;
     } PerformanceData;
 
     typedef enum {
         TASK_SERIAL_MONITORING,
         FUNC_LOG_FRAME,
         FUNC_DESERIALIZE_LOG,
+        TASK_MAIN_GUI,
         NUM_ANALYSIS,
     } AnalysisIndex;
 
@@ -23,5 +31,6 @@ namespace performance_analysis {
     void End(AnalysisIndex index);
     PerformanceData * GetData(AnalysisIndex index);
     void PrintPerformanceData(AnalysisIndex index);
+    void PerformanceWindow(bool& open);
 } // namespace performance_analysis
 #endif  // PERFORMANCE_ANALYSIS_H_

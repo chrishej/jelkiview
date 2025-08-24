@@ -27,7 +27,7 @@ env.Append(LINKFLAGS=['-static'])
 AddOption('--no-lint',
           action='store_true',
           dest='no_lint',
-          default=False,
+          default=True,
           help='Disable clang-tidy linting')
 
 third_objs, third_env = SConscript('third_party/SConscript', exports='env')

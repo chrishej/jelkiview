@@ -269,9 +269,12 @@ namespace {
             previous_start_time = start_time;
             // Don't check instance, simple_uart returns 0 if it is not open.
             available = simple_uart_has_data(uart_instance);
+            if (available >= sizeof(buffer)) {
+                serial_front::AddLog("%s Overflow, %d bytes available to read, but buffer is only %d bytes.\n", ERROR_CHAR, available, sizeof(buffer));
+            }
             if (available > 0) {
             performance_analysis::Start(performance_analysis::TASK_SERIAL_MONITORING);
-                read_bytes = simple_uart_read(uart_instance, buffer, sizeof(buffer));
+                read_bytes = simple_uart_read(uart_instance, buffer, available);
                 //std::cout << "Read bytes: " << read_bytes << "\n";
                 if (read_bytes > 0) {
                     HandleRx(read_bytes);

@@ -14,12 +14,14 @@
 #include "data_logger.h"
 #include <regex>
 #include "elf_parser.h"
+#include "performance_analysis.h"
 
 namespace {
     bool show_console = true;
     bool show_map_parser = true;
     bool show_port_menu = false;
     bool port_opened = false;
+    bool show_performance_window = false;
 
     static ImVector<char*> Items;
     static char InputBuf[256];
@@ -42,6 +44,9 @@ namespace {
             }
             if (ImGui::MenuItem("Map Parser")) {
                 show_map_parser = true;
+            }
+            if (ImGui::MenuItem("Performance")) {
+                show_performance_window = true;
             }
             ImGui::EndMenu();
         }
@@ -398,6 +403,9 @@ namespace serial_front {
         MenuBar();
         Console();
         MapParser();
+        if (show_performance_window) {
+            performance_analysis::PerformanceWindow(show_performance_window);
+        }
         parsed_map = serial_back::GetParsedMap();
         // remove entries in log_variables that are not in parsed_map
         for (auto it = log_variables.begin(); it != log_variables.end(); it++) {

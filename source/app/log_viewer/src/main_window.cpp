@@ -27,6 +27,7 @@
 #include "rapidcsv.h"
 #include "settings.h"
 #include "serial_back.h"
+#include "performance_analysis.h"
 
 typedef struct {
     double decimation_factor;
@@ -50,6 +51,7 @@ int visible_x_when_serial_log = 10;
 bool remove_subplot = false;
 int subplot_idx = 0;
 double cursor_delta = 0;
+bool show_performance_window = false;
 
 
 // Decimates the input vector between indices [time_min_idx, time_max_idx] with step m.
@@ -132,7 +134,17 @@ static void MenuBar() {
   }
   ImGui::Text("|");
   Licenses();
+  
   ImGui::Text("|");
+
+  if (ImGui::MenuItem("Performance")) {
+      show_performance_window = true;
+  }
+  if (show_performance_window) {
+      performance_analysis::PerformanceWindow(show_performance_window);
+  }
+  ImGui::Text("|");
+
 
   if (serial_log_running) {
     ImGui::Text("Visible X: ");

@@ -26,6 +26,7 @@
 #include "serial_back.h"
 #include "serial_front.h"
 #include "serial_back.h"
+#include "performance_analysis.h"
 
 static void GlfwErrorCallback(int error, const char* description) {
     fprintf(stderr, "GLFW Error %d: %s\n", error, description);
@@ -38,7 +39,7 @@ static void RunInitFunctions() {
 
 using namespace std::chrono;
 
-milliseconds delay;
+milliseconds delay = std::chrono::milliseconds(20);
 
 // Main code
 int main(int, char**) {
@@ -127,24 +128,26 @@ int main(int, char**) {
         // flags.
         glfwPollEvents();
         if (glfwGetWindowAttrib(window, GLFW_ICONIFIED) != 0) {
-            ImGui_ImplGlfw_Sleep(50);
-            continue;
+            //ImGui_ImplGlfw_Sleep(50);
+            //continue;
         }
 
         glfwSetCursorEnterCallback(window, [](GLFWwindow* win, int entered) {
             (void)win;
-            if (entered && !serial_back::IsLogRunning())
-                delay = std::chrono::milliseconds(10);
-            else if (serial_back::IsLogRunning())
-                delay = std::chrono::milliseconds(75);
-            else 
-                delay = std::chrono::milliseconds(100);
+//!            if (entered && !serial_back::IsLogRunning())
+//!                delay = std::chrono::milliseconds(10);
+//!            else if (serial_back::IsLogRunning())
+//!                delay = std::chrono::milliseconds(20);
+//!            else 
+//!                delay = std::chrono::milliseconds(30);
         });
 
         
         steady_clock::time_point nextWakeTime = lastWakeTime + delay;
         std::this_thread::sleep_until(nextWakeTime);
         lastWakeTime = nextWakeTime;
+        
+        performance_analysis::Start(performance_analysis::AnalysisIndex::TASK_MAIN_GUI);
 
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
@@ -185,6 +188,8 @@ int main(int, char**) {
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         glfwSwapBuffers(window);
+
+        performance_analysis::End(performance_analysis::AnalysisIndex::TASK_MAIN_GUI);
     }
 
     // Cleanup

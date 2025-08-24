@@ -22,6 +22,7 @@
 
 namespace {
 std::unordered_map<std::string, std::vector<double>> log_variables;
+Data log_data;
 std::string log_file_path;
 std::mutex log_mutex;
 float base_time = 0.0F;
