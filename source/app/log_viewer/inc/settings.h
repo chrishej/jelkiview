@@ -13,6 +13,7 @@ struct Settings {
     char time_name[settings::kSettingsCharBufLen];
     char separator[settings::kSettingsCharBufLen];
     bool auto_size_y;
+    int cursor_value_table_size;
 };
 
 namespace settings {

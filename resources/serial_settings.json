@@ -1,0 +1,7 @@
+{
+    "addr2line": "C:\\dev\\arm-gnu-toolchain-14.3\\bin\\arm-none-eabi-addr2line.exe",
+    "baud_rate": 3000000,
+    "elf_file_path": "C:\\dev\\stm\\tx2\\Build\\test.elf",
+    "nm": "C:\\dev\\arm-gnu-toolchain-14.3\\bin\\arm-none-eabi-nm.exe",
+    "port_name": "COM5"
+}

@@ -17,12 +17,17 @@
 #include "rapidcsv.h"
 #include "settings.h"
 #include "layout.h"
+#include "data_logger.h"
+#include "serial_back.h"
+#include "data_logger.h"
 
 namespace {
 Data data = {
-    .time = {0},   // time
-    .signals = {}  // signals
+    .time = {0},    // time
+    .signals = {},  // signals
 };
+
+LogSource log_source = LOG_SOURCE_CSV;
 
 std::string ReadAndCleanCSV(const std::string& file_path) {
     std::ifstream file(file_path);
@@ -58,6 +63,7 @@ float ParseCommaDecimal(const std::string& str) {
 }
 
 void ReadCSV(std::string const& file) {
+    log_source = LOG_SOURCE_CSV;
     std::string const raw_csv = ReadAndCleanCSV(file);
     std::stringstream csv_stream(raw_csv);
 
@@ -71,6 +77,7 @@ void ReadCSV(std::string const& file) {
 
     for (std::string const& str : doc.GetColumnNames()) {
         std::vector<std::string> const read_str = doc.GetColumn<std::string>(str);
+
         if (str == std::string(settings::GetSettings()->time_name)) {
             for (const auto& val : read_str) {
                 data.time.push_back(ParseCommaDecimal(val));
@@ -87,13 +94,45 @@ void ReadCSV(std::string const& file) {
     v_line_1_pos = data.time[data.time.size() >> 2];
     v_line_2_pos = data.time[data.time.size() - (data.time.size() >> 2)];
 }
+
+void GetStreamingData() {
+    Data* data_ptr = data_logger::GetLogData();
+
+    data.time = data_ptr->time;
+    data.signals = data_ptr->signals;
+}
 }  // anonymous namespace
 
-Data* GetData() { return &data; }
+Data* GetData() {
+    if (log_source == LOG_SOURCE_SERIAL) {
+        //GetStreamingData();
+        return data_logger::GetLogData();
+    }
+    return &data; 
+}
+
+LogSource GetLogSource() {
+    return log_source;
+}
 
 void ClearData() {
     data.signals.clear();
     data.time.clear();
+}
+
+void InitSerialStream(std::unordered_map<std::string, VarStruct> log_variables) {
+    log_source = LOG_SOURCE_SERIAL;
+    ClearData();
+    layout::subplots_map.clear();
+
+    data.time = std::vector<double>();
+    for (const auto& [var_name, var_struct] : log_variables) {
+        if (var_name != "Time") {
+            data.signals[var_name] = std::vector<double>();
+        }
+    }
+
+    layout::SetMapToLayout();
 }
 
 void LogReadButton() {

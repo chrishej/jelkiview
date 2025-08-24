@@ -6,16 +6,17 @@ Import('env', "objects")
 env.Append(LIBPATH=['../third_party/glfw/lib-mingw-w64']) 
 # # Link the libraries 
 #env.Append(LIBS=['glfw3.lib', 'opengl32.lib', 'gdi32.lib', 'shell32.lib'])
-env.Append(LIBS=['glfw3', 'opengl32', 'gdi32', 'shell32'])
+env.Append(LIBS=['glfw3', 'opengl32', 'gdi32', 'shell32', 'setupapi', 'uuid'])
 
 env.Append(CPPPATH=[
-    '#app/inc/',
+    "#source/app/serial_monitor/inc/",
+    "#source/app/log_viewer/inc/",
+    "#source/app/main/inc/",
     ])
 
 env.Append(CXXFLAGS=[
     '-Wpedantic',
     '-pedantic-errors',
-    '-Werror',
     '-Wall',
     '-Wextra',
     '-Wcast-align',
@@ -38,19 +39,28 @@ env.Append(CXXFLAGS=[
 
 #env.Append(CCFLAGS=['/MD', '/nologo', '/std:c++20', '/EHsc', '/W4', '/diagnostics:column', '/diagnostics:caret'])
 
-sources = [
-        'main.cpp',
-        'settings.cpp',
-        'log_reader.cpp',
-        'data_cursors.cpp',
-        'main_window.cpp',
-        "licenses.cpp",
-        "layout.cpp",
-]
+#!sources = [
+#!        'src/main.cpp',
+#!        'src/settings.cpp',
+#!        'src/log_reader.cpp',
+#!        'src/data_cursors.cpp',
+#!        'src/main_window.cpp',
+#!        "src/licenses.cpp",
+#!        "src/layout.cpp",
+#!        "src/serial_back.cpp",
+#!        "src/serial_front.cpp",
+#!        "src/data_logger.cpp",
+#!        "src/performance_analysis.cpp",
+#!]
+sources  = Glob("src/*.cpp")
+sources += Glob("serial_monitor/src/*.cpp")
+sources += Glob("log_viewer/src/*.cpp")
+sources += Glob("main/src/*.cpp")
 
 sources_lint = [
     'settings.cpp',
     'log_reader.cpp',
+    'data_logger.cpp',
 ]
 
 env.Tool('compilation_db')
@@ -77,7 +87,8 @@ if not GetOption('no_lint'):
 
 to_release = [
     "jelkiview.exe",
-    "#resources/"
+    "#resources/",
+    "#imgui.ini",
 ]
 release_targets = []
 for item in to_release:
