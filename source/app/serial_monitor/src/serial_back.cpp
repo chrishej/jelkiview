@@ -42,7 +42,8 @@ typedef struct {
 std::unordered_map<std::string, FrameStruct> frames;
 
 namespace {
-    void SerialMonitoringTask();
+    DWORD WINAPI SerialMonitoringTask(LPVOID lpParam);
+    HANDLE serial_monitor_handle = nullptr;
 
     struct simple_uart* uart_instance           = nullptr;
     FileSymbolMap       parsed_map;
@@ -141,6 +142,7 @@ namespace {
         static int                  rx_cnt          = 0;
         static uint16_t             variable_cnt    = 0;
         static int                  frame_id        = 0;
+        static FrameStruct*         current_frame   = nullptr;
 
         const bool log = false;
         
@@ -165,50 +167,64 @@ namespace {
             }
             break;
 
-        case LOG_FRAME_ID:
+        case LOG_FRAME_ID: {
             if (log) serial_front::AddLog("%s Frame ID: %d.\n", RX_CHAR, rx_byte);
             frame_id = rx_byte;
+
+            auto it = frames.find(std::to_string(frame_id));
+
+            if (it == frames.end()) {
+                serial_front::AddLog("%s ERROR: Received frame ID %d, but it was not configured. Stopping log.\n", ERROR_CHAR, frame_id);
+                serial_back::StopLog();
+                deserialize_log_state = LOG_WAITING_START;
+                rx_cnt = 0;
+                variable_cnt = 0;
+                return;
+            }
+
+            current_frame = &it->second;
+
             deserialize_log_state = LOG_RECIEVE_TIME;
-            frames[std::to_string(frame_id)].latest_timestamp = 0;
+            current_frame->latest_timestamp = 0;
             rx_cnt = 0;
             break;
+        }
         
         case LOG_RECIEVE_TIME:
             // next 4 bytes are time, with most significant byte first
-            frames[std::to_string(frame_id)].latest_timestamp |= (static_cast<uint64_t>(rx_byte) << (8 * (3 - rx_cnt)));
+            current_frame->latest_timestamp |= (static_cast<uint64_t>(rx_byte) << (8 * (3 - rx_cnt)));
             rx_cnt++;
             if (rx_cnt >= 4) {
                 // After 4 bytes, we expect to receive variables
                 deserialize_log_state = LOG_RECIEVE_VARIABLES;
                 rx_cnt = 0;
                 variable_cnt = 0;
-                frames[std::to_string(frame_id)].latest_timestamp *= 10;
-                if (log) serial_front::AddLog("%s     Frame Time: %lu us.\n", RX_CHAR, frames[std::to_string(frame_id)].latest_timestamp);
+                current_frame->latest_timestamp *= 10;
+                if (log) serial_front::AddLog("%s     Frame Time: %lu us.\n", RX_CHAR, current_frame->latest_timestamp);
             }
             break;
 
         case LOG_RECIEVE_VARIABLES:
-            var_size = frames[std::to_string(frame_id)].variables[variable_cnt].size;
+            var_size = current_frame->variables[variable_cnt].size;
             if (rx_cnt == 0) {
                 // Mask to 0.
-                frames[std::to_string(frame_id)].variables[variable_cnt].latest_rx = 0;
+                current_frame->variables[variable_cnt].latest_rx = 0;
             }
-            frames[std::to_string(frame_id)].variables[variable_cnt].latest_rx |= 
+            current_frame->variables[variable_cnt].latest_rx |= 
                 (static_cast<uint32_t>(rx_byte) << (8 * (var_size - 1 - rx_cnt)));
             rx_cnt++;
             if (rx_cnt >= var_size) {
-                if (log) serial_front::AddLog("%s     Variable %s, Value: 0x%08X\n", 
-                    RX_CHAR, frames[std::to_string(frame_id)].variables[variable_cnt].name.c_str(), 
-                    frames[std::to_string(frame_id)].variables[variable_cnt].latest_rx);
+                if (log) serial_front::AddLog("%s     Variable %s, Value: 0x%08X\n",
+                    RX_CHAR, current_frame->variables[variable_cnt].name.c_str(),
+                    current_frame->variables[variable_cnt].latest_rx);
                 variable_cnt++;
-                if (variable_cnt < frames[std::to_string(frame_id)].variables.size()) {
+                if (variable_cnt < current_frame->variables.size()) {
                     // More variables to decode
                     rx_cnt = 0;
                 } else {
                     // Done
                     deserialize_log_state = LOG_FRAME_ID;
-                    FrameStruct frame = frames[std::to_string(frame_id)];
-                    data_logger::LogFrame(frame);
+                    data_logger::LogFrame(*current_frame);
                 }
             }
             break;
@@ -250,7 +266,7 @@ namespace {
      * Fast task to handle reading of the serial port 
      * and deserialization of the log data.
      */
-    void SerialMonitoringTask() {
+    DWORD WINAPI SerialMonitoringTask(LPVOID lpParam) {
         int             available;
         int             read_bytes          = 0;
         uint32_t        sleep_time          = 10;
@@ -267,13 +283,16 @@ namespace {
             // get start time for loop time calculation
             start_time = std::chrono::high_resolution_clock::now();
             previous_start_time = start_time;
+
             // Don't check instance, simple_uart returns 0 if it is not open.
             available = simple_uart_has_data(uart_instance);
+
             if (available >= sizeof(buffer)) {
                 serial_front::AddLog("%s Overflow, %d bytes available to read, but buffer is only %d bytes.\n", ERROR_CHAR, available, sizeof(buffer));
             }
             if (available > 0) {
-            performance_analysis::Start(performance_analysis::TASK_SERIAL_MONITORING);
+                performance_analysis::Start(performance_analysis::TASK_SERIAL_MONITORING);
+
                 read_bytes = simple_uart_read(uart_instance, buffer, available);
                 //std::cout << "Read bytes: " << read_bytes << "\n";
                 if (read_bytes > 0) {
@@ -282,7 +301,8 @@ namespace {
                     serial_front::AddLog("%s ERROR: Failed to read from %s.\n", ERROR_CHAR, port_name.c_str());
                 }
                 DBG_recieved_bytes = read_bytes*0.1 + DBG_recieved_bytes*0.9;
-            performance_analysis::End(performance_analysis::TASK_SERIAL_MONITORING);
+
+                performance_analysis::End(performance_analysis::TASK_SERIAL_MONITORING);
             } else {
                 DBG_recieved_bytes = available*0.1 + DBG_recieved_bytes*0.9;
             }
@@ -306,6 +326,8 @@ namespace {
         }
         serial_thread_running = false;
         std::cout << "\nSerial backend thread exiting.\n";
+
+        return 0;
     }
 
 
@@ -493,8 +515,8 @@ namespace serial_back {
     void SerialInit() {
         LoadSettings();
 
-        std::thread serial_thread(SerialMonitoringTask);
-        serial_thread.detach();
+        serial_monitor_handle = CreateThread(NULL, 0, SerialMonitoringTask, NULL, 0, NULL);
+        SetThreadPriority(serial_monitor_handle, THREAD_PRIORITY_TIME_CRITICAL);
 
         std::thread slow_task_thread(SlowTask);
         slow_task_thread.detach();

@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <vector>
+#include <deque>
 
 namespace performance_analysis {
     typedef struct {
@@ -15,8 +16,8 @@ namespace performance_analysis {
         std::chrono::milliseconds::rep elapsed_time_LP;
         std::chrono::milliseconds::rep tick_time_LP;
 
-        std::vector<std::chrono::milliseconds::rep> elapsed_time_vec;
-        std::vector<std::chrono::milliseconds::rep> tick_time_vec;
+        std::deque<std::chrono::milliseconds::rep> elapsed_time_deque;
+        std::deque<std::chrono::milliseconds::rep> tick_time_deque;
     } PerformanceData;
 
     typedef enum {
@@ -27,6 +28,7 @@ namespace performance_analysis {
         NUM_ANALYSIS,
     } AnalysisIndex;
 
+    void RecievedBytes(uint16_t bytes);
     void Start(AnalysisIndex index);
     void End(AnalysisIndex index);
     PerformanceData * GetData(AnalysisIndex index);

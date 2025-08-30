@@ -83,6 +83,7 @@ Data* GetLogData() {
 }
 
 void LogFrame(const FrameStruct& frame) {
+    performance_analysis::Start(performance_analysis::AnalysisIndex::FUNC_LOG_FRAME);
     std::lock_guard<std::mutex> const lock(log_mutex);
     const float us_to_sec = 1e6F;
 
@@ -98,24 +99,26 @@ void LogFrame(const FrameStruct& frame) {
     // Else if the time is new, append new time and copy the last value for all variables
     if (log_data.time.empty()) {
         log_data.time.push_back(log_time);
-        for (const auto& var : log_data.signals) {
-            log_data.signals[var.first].push_back(0.0);
+        for (auto& [name, vec] : log_data.signals) {
+            vec.push_back(0.0);
         }
     } else if (log_time > log_data.time.back()) {
         log_data.time.push_back(log_time);
-        for (const auto& var : log_data.signals) {
-            log_data.signals[var.first].push_back(log_data.signals[var.first].back());
+        for (auto& [name, vec] : log_data.signals) {
+            vec.push_back(vec.back());
         }
     }
 
     // Replace the last value for variables in frame
     for (const auto& var : frame.variables) {
-    performance_analysis::Start(performance_analysis::AnalysisIndex::FUNC_LOG_FRAME);
         double const value = TypeCast(var.latest_rx, var.type);
-    performance_analysis::End(performance_analysis::AnalysisIndex::FUNC_LOG_FRAME);
-        log_data.signals[var.name].back() = value;
+        auto it = log_data.signals.find(var.name);
+        if (it != log_data.signals.end() && !it->second.empty()) {
+            it->second.back() = value;
+        }
     }
 
+    performance_analysis::End(performance_analysis::AnalysisIndex::FUNC_LOG_FRAME);
 }
 
 /*

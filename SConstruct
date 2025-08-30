@@ -17,6 +17,7 @@ env = Environment(
 env.Append(CXXFLAGS=[
     '-std=c++20', 
     '-g',
+    '-O3',
     '-static', 
     '-static-libgcc', 
     '-static-libstdc++'
