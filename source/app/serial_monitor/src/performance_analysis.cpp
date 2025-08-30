@@ -103,7 +103,9 @@ namespace performance_analysis {
         ImGui::SetNextWindowSize(ImVec2(600,400), ImGuiCond_FirstUseEver);
         if (ImGui::Begin("Performance Analysis", &open)) {
             if (ImPlot::BeginSubplots("##PerformanceSubplots", 3, 1, ImVec2(-1,-1), ImPlotSubplotFlags_LinkAllX)) {
+
                 ImPlot::BeginPlot("Elapsed Time");
+                ImPlot::SetupAxis(ImAxis_X1, nullptr, ImPlotAxisFlags_AutoFit);
                 for (const auto& analysis : list) {
                     if (!analysis.data->elapsed_time_deque.empty()) {
                         std::vector<long long> temp(analysis.data->elapsed_time_deque.begin(), analysis.data->elapsed_time_deque.end());
@@ -114,7 +116,6 @@ namespace performance_analysis {
                 }
                 ImPlot::EndPlot();
 
-                ImPlot::SetNextAxesLimits(ImAxis_X1, 0, buffer_size, ImPlotCond_Always);
                 ImPlot::BeginPlot("Tick Time");
                 for (const auto& analysis : list) {
                     if (!analysis.data->tick_time_deque.empty()) {
@@ -126,7 +127,6 @@ namespace performance_analysis {
                 }
                 ImPlot::EndPlot();
 
-                ImPlot::SetNextAxesLimits(ImAxis_X1, 0, buffer_size, ImPlotCond_Always);
                 ImPlot::BeginPlot("Recieved Bytes");
                 if (!recieved_bytes_buffer.empty()) {
                     std::vector<int> temp(recieved_bytes_buffer.begin(), recieved_bytes_buffer.end());
@@ -134,11 +134,13 @@ namespace performance_analysis {
                         temp.data(),
                         temp.size());
                 }
+                ImPlot::EndPlot();
 
                 ImPlot::EndSubplots();
             }
+            
+            ImGui::End();
         }
-        ImGui::End();
     }
 
 } // namespace performance_analysis

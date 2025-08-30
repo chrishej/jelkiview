@@ -2,6 +2,7 @@
 
 #include "serial_front.h"
 #include "serial_back.h"
+#include "json.hpp"
 
 #include <filesystem>
 #include <array>
@@ -9,6 +10,8 @@
 #include <regex>
 #include <fstream>
 #include <iostream>
+
+using Json = nlohmann::json;
 
 namespace {
     typedef struct {
@@ -154,6 +157,32 @@ namespace {
         return true;
     }
 
+    void FileSymbolMapToJson(FileSymbolMap& grouped_variables) {
+        // Save grouped_variables to JSON file
+        Json json;
+        for (const auto& [file, symbols] : grouped_variables) {
+            Json symbol_array = Json::array();
+            for (const auto& [name, info] : symbols) {
+                Json symbol_info = {
+                    {"name", name},
+                    {"address", info.address},
+                    {"size", info.size},
+                    {"frame", info.frame},
+                    {"type", (int)info.type}
+                };
+                symbol_array.push_back(symbol_info);
+            }
+            json[file] = symbol_array;
+        }
+
+        // Write JSON to file
+        std::ofstream file("resources/symbol_map.json");
+        if (file.is_open()) {
+            file << json.dump(4); // Pretty print with 4 spaces
+            file.close();
+        }
+    }
+
 } // anonymous namespace
 
 namespace elf_parser {
@@ -170,7 +199,7 @@ namespace elf_parser {
         }
         if (!std::filesystem::exists(file_path)) {
             if (!error_thrown)
-                serial_front::AddLog("%s ERROR: elf file %s does not exist.\n", ERROR_CHAR, elf_file_path.c_str());
+                serial_front::AddLog("%s ERROR: elf file %s does not exist.\n", INFO_CHAR, elf_file_path.c_str());
             error_thrown = true;
             //elf_file_path = "";
             //parsed_map.clear();
@@ -185,7 +214,8 @@ namespace elf_parser {
         return false; // No change detected
     }
 
-    bool ParseElfFile(FileSymbolMap& grouped_variables) {
+    bool ParseElfFile() {
+        FileSymbolMap grouped_variables;
         //FileSymbolMap grouped_variables;
         SerialBack_Settings * settings = serial_back::GetSettings();
 
@@ -233,7 +263,34 @@ namespace elf_parser {
                 .type    = file_info.type
             };
         }
+
+        FileSymbolMapToJson(grouped_variables);
         return true;
+    }
+
+    void FileSymbolMapFromJson(FileSymbolMap& grouped_variables) {
+        // Read JSON from file
+        std::ifstream in_file("resources/symbol_map.json");
+        if (!in_file.is_open()) {
+            serial_front::AddLog("%s ERROR: Failed to open JSON file: %s\n", ERROR_CHAR, "resources/symbol_map.json");
+            return;
+        }
+
+        Json json;
+        in_file >> json;
+
+        // Populate grouped_variables from JSON
+        for (const auto& [file, symbol_array] : json.items()) {
+            for (const auto& symbol_info : symbol_array) {
+                std::string name = symbol_info["name"];
+                grouped_variables[file][name] = {
+                    .address = symbol_info["address"],
+                    .size    = symbol_info["size"],
+                    .frame   = symbol_info["frame"],
+                    .type    = static_cast<VariableType>(symbol_info["type"])
+                };
+            }
+        }
     }
 
     std::vector<std::string> GetVariableTypes() {

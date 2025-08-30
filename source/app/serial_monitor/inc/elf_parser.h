@@ -7,7 +7,8 @@
 
 namespace elf_parser {
     bool ElfFileChanged(std::string elf_file_path);
-    bool ParseElfFile(FileSymbolMap& grouped_variables);
+    bool ParseElfFile();
+    void FileSymbolMapFromJson(FileSymbolMap& grouped_variables);
     std::vector<std::string> GetVariableTypes();
 } // namespace elf_parser
 

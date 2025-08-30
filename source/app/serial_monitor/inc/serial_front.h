@@ -5,6 +5,7 @@
 
 #define COMMAND_CHAR "$"
 #define ERROR_CHAR "!"
+#define INFO_CHAR "%"
 #define TX_CHAR "<"
 #define RX_CHAR ">"
 

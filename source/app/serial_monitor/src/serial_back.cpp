@@ -56,10 +56,6 @@ namespace {
     std::string         port_name               = "COM5";
     SerialBack_Settings settings = {.nm = "", .addr2line = "", .elf_file_path = ""};
 
-    uint16_t DBG_recieved_bytes = 0;
-    std::chrono::milliseconds::rep DBG_serial_monitor_elapsed_time;
-    std::chrono::milliseconds::rep DBG_serial_monitor_tick_time;
-
     // Indexed with <enum>CommandIndex
     std::vector<CommandStruct> command_list = {
         {"invalid",         0x00},
@@ -294,21 +290,19 @@ namespace {
                 performance_analysis::Start(performance_analysis::TASK_SERIAL_MONITORING);
 
                 read_bytes = simple_uart_read(uart_instance, buffer, available);
-                //std::cout << "Read bytes: " << read_bytes << "\n";
+
+                performance_analysis::RecievedBytes(read_bytes);
+
                 if (read_bytes > 0) {
                     HandleRx(read_bytes);
                 } else {
                     serial_front::AddLog("%s ERROR: Failed to read from %s.\n", ERROR_CHAR, port_name.c_str());
                 }
-                DBG_recieved_bytes = read_bytes*0.1 + DBG_recieved_bytes*0.9;
 
                 performance_analysis::End(performance_analysis::TASK_SERIAL_MONITORING);
-            } else {
-                DBG_recieved_bytes = available*0.1 + DBG_recieved_bytes*0.9;
             }
 
-
-            // Faster update when log running. CPU!!!
+            // Faster update when log running
             if (log_running) {
                 sleep_time = sleep_time_logging;
             } else {
@@ -352,11 +346,25 @@ namespace {
 
     void LoadSettings() {
         std::string settings_path = "resources/serial_settings.json";
+        Json settings_json;
+
         if (!std::filesystem::exists(settings_path)) {
             return;
         }
         std::ifstream settings_file(settings_path);
-        Json settings_json = Json::parse(settings_file);  // NOLINT(misc-const-correctness)
+
+        try {
+            settings_json = Json::parse(settings_file);  // NOLINT(misc-const-correctness)
+        } catch (const std::exception& e) {
+            serial_front::AddLog("%s ERROR when opening serial settings file: %s\n", ERROR_CHAR, e.what());
+            serial_front::AddLog("%s   %s\n", ERROR_CHAR, e.what());
+            // Fill settings_json with empty values
+            settings_json["baud_rate"] = 250000;
+            settings_json["port_name"] = "COM5";
+            settings_json["elf_file_path"] = "-";
+            settings_json["nm"] = "-";
+            settings_json["addr2line"] = "-";
+        }
 
         settings_file.close();
         baud_rate = settings_json.value("baud_rate", 250000);
@@ -400,27 +408,10 @@ namespace {
 
             if ( (elf_file_changed_old && !elf_file_changed) ) {
                 parsing_elf_file = true;
-                elf_parser::ParseElfFile(parsed_map);
+                elf_parser::ParseElfFile();
+                elf_parser::FileSymbolMapFromJson(parsed_map);
                 parsing_elf_file = false;
             }
-
-            performance_analysis::PerformanceData * data = 
-                performance_analysis::GetData(performance_analysis::TASK_SERIAL_MONITORING);
-            if (data) {
-                DBG_serial_monitor_elapsed_time = data->elapsed_time;
-                DBG_serial_monitor_tick_time    = data->tick_time;
-            }
-
-//            if (log_running) {
-//                std::cout << "Rx bytes: "         << std::setw(8)     << DBG_recieved_bytes;
-//                performance_analysis::PrintPerformanceData(performance_analysis::TASK_SERIAL_MONITORING);
-//                std::cout << " | ";
-//                performance_analysis::PrintPerformanceData(performance_analysis::FUNC_LOG_FRAME);
-//                //std::cout << " | ";
-//                //performance_analysis::PrintPerformanceData(performance_analysis::FUNC_DESERIALIZE_LOG);
-//                std::cout << "\n";
-//            }
-
 
             elf_file_changed_old = elf_file_changed;
 
@@ -518,6 +509,8 @@ namespace serial_back {
         serial_monitor_handle = CreateThread(NULL, 0, SerialMonitoringTask, NULL, 0, NULL);
         SetThreadPriority(serial_monitor_handle, THREAD_PRIORITY_TIME_CRITICAL);
 
+        elf_parser::FileSymbolMapFromJson(parsed_map);
+
         std::thread slow_task_thread(SlowTask);
         slow_task_thread.detach();
     }
@@ -558,10 +551,10 @@ namespace serial_back {
         }
         serial_front::AddLog("%s %s\n", TX_CHAR, oss.str().c_str());
 
-        Send(command_buffer);
-
-        data_logger::init(log_variables);
-        log_running = true;
+        if (Send(command_buffer)) {
+            data_logger::init(log_variables);
+            log_running = true;
+        }
     }
 
     void StopLog() {

@@ -93,7 +93,7 @@ void ManageSubplot(int subplot_index,
   }
 
   if (ImGui::Button("Remove Subplot")) {
-    if (subplot_index >= 0 && static_cast<size_t>(subplot_index) < subplots_map_loc->size()) {
+    if (subplot_index > 0 && static_cast<size_t>(subplot_index) < subplots_map_loc->size()) {
       subplots_map_loc->erase(subplots_map_loc->begin() + subplot_index);
       remove_subplot = true;
       subplot_idx = subplot_index;

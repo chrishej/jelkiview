@@ -1,0 +1,659 @@
+{
+    "-- (declared static?)": [
+        {
+            "address": 536873412,
+            "frame": 0,
+            "name": "tx_byte_pool_buffer",
+            "size": 1024,
+            "type": 2
+        },
+        {
+            "address": 536873360,
+            "frame": 0,
+            "name": "tx_app_byte_pool",
+            "size": 52,
+            "type": 2
+        },
+        {
+            "address": 536871012,
+            "frame": 0,
+            "name": "rx_cnt.1",
+            "size": 2,
+            "type": 2
+        },
+        {
+            "address": 536871016,
+            "frame": 0,
+            "name": "handler.2",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536872164,
+            "frame": 0,
+            "name": "frame_idx.0",
+            "size": 2,
+            "type": 2
+        },
+        {
+            "address": 536871396,
+            "frame": 0,
+            "name": "COM_ActiveLogPort",
+            "size": 1,
+            "type": 2
+        },
+        {
+            "address": 536871380,
+            "frame": 0,
+            "name": "__lock___malloc_recursive_mutex",
+            "size": 1,
+            "type": 2
+        },
+        {
+            "address": 536871381,
+            "frame": 0,
+            "name": "__lock___sfp_recursive_mutex",
+            "size": 1,
+            "type": 2
+        },
+        {
+            "address": 536871568,
+            "frame": 0,
+            "name": "button_counter_U16",
+            "size": 2,
+            "type": 2
+        },
+        {
+            "address": 536871556,
+            "frame": 0,
+            "name": "cnt.0",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536871372,
+            "frame": 0,
+            "name": "__stdio_exit_handler",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536871388,
+            "frame": 0,
+            "name": "__malloc_free_list",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536871384,
+            "frame": 0,
+            "name": "__malloc_sbrk_start",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536870928,
+            "frame": 0,
+            "name": "_impure_data",
+            "size": 76,
+            "type": 2
+        },
+        {
+            "address": 536873356,
+            "frame": 0,
+            "name": "__sbrk_heap_end",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536871376,
+            "frame": 0,
+            "name": "errno",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536870924,
+            "frame": 0,
+            "name": "_impure_ptr",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536871060,
+            "frame": 0,
+            "name": "__sf",
+            "size": 312,
+            "type": 2
+        },
+        {
+            "address": 536870912,
+            "frame": 0,
+            "name": "__sglue",
+            "size": 12,
+            "type": 2
+        },
+        {
+            "address": 536871566,
+            "frame": 0,
+            "name": "button_counter_S16",
+            "size": 2,
+            "type": 2
+        }
+    ],
+    "app_threadx.c": [
+        {
+            "address": 536871572,
+            "frame": 0,
+            "name": "tx_app_thread",
+            "size": 176,
+            "type": 2
+        },
+        {
+            "address": 536871560,
+            "frame": 0,
+            "name": "counter_20kHz",
+            "size": 2,
+            "type": 1
+        },
+        {
+            "address": 536871562,
+            "frame": 0,
+            "name": "counter_2kHz",
+            "size": 2,
+            "type": 1
+        },
+        {
+            "address": 536871564,
+            "frame": 0,
+            "name": "counter_1hz",
+            "size": 2,
+            "type": 1
+        }
+    ],
+    "main.c": [
+        {
+            "address": 536871844,
+            "frame": 0,
+            "name": "huart3",
+            "size": 148,
+            "type": 2
+        },
+        {
+            "address": 536872068,
+            "frame": 0,
+            "name": "htim1",
+            "size": 76,
+            "type": 2
+        },
+        {
+            "address": 536871992,
+            "frame": 0,
+            "name": "htim8",
+            "size": 76,
+            "type": 2
+        },
+        {
+            "address": 536871748,
+            "frame": 0,
+            "name": "hdma_usart3_tx",
+            "size": 96,
+            "type": 2
+        },
+        {
+            "address": 536872148,
+            "frame": 0,
+            "name": "BspCOMInit",
+            "size": 16,
+            "type": 2
+        },
+        {
+            "address": 536872144,
+            "frame": 0,
+            "name": "BspButtonState",
+            "size": 4,
+            "type": 2
+        }
+    ],
+    "serial_log.c": [
+        {
+            "address": 536873204,
+            "frame": 0,
+            "name": "rx_head",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536873208,
+            "frame": 0,
+            "name": "rx_handle_idx",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536873276,
+            "frame": 0,
+            "name": "rx_data",
+            "size": 1,
+            "type": 0
+        },
+        {
+            "address": 536873200,
+            "frame": 0,
+            "name": "nr_of_frames",
+            "size": 1,
+            "type": 0
+        },
+        {
+            "address": 536873212,
+            "frame": 0,
+            "name": "rx_buffer",
+            "size": 64,
+            "type": 0
+        },
+        {
+            "address": 536873196,
+            "frame": 0,
+            "name": "log_time",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536873201,
+            "frame": 0,
+            "name": "log_started",
+            "size": 1,
+            "type": 9
+        },
+        {
+            "address": 536873202,
+            "frame": 0,
+            "name": "last_byte",
+            "size": 1,
+            "type": 0
+        },
+        {
+            "address": 536871020,
+            "frame": 0,
+            "name": "tick_size_10us",
+            "size": 1,
+            "type": 0
+        },
+        {
+            "address": 536872168,
+            "frame": 0,
+            "name": "frames",
+            "size": 1024,
+            "type": 2
+        },
+        {
+            "address": 536873192,
+            "frame": 0,
+            "name": "frame_pending",
+            "size": 2,
+            "type": 9
+        }
+    ],
+    "stm32g4xx_hal.c": [
+        {
+            "address": 536871008,
+            "frame": 0,
+            "name": "uwTickPrio",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536871004,
+            "frame": 0,
+            "name": "uwTickFreq",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536871392,
+            "frame": 0,
+            "name": "uwTick",
+            "size": 4,
+            "type": 2
+        }
+    ],
+    "stm32g4xx_hal_timebase_tim.c": [
+        {
+            "address": 536873280,
+            "frame": 0,
+            "name": "htim3",
+            "size": 76,
+            "type": 2
+        }
+    ],
+    "stm32g4xx_nucleo.c": [
+        {
+            "address": 536871548,
+            "frame": 0,
+            "name": "hpb_exti",
+            "size": 8,
+            "type": 2
+        },
+        {
+            "address": 536871400,
+            "frame": 0,
+            "name": "hcom_uart",
+            "size": 148,
+            "type": 2
+        }
+    ],
+    "system_stm32g4xx.c": [
+        {
+            "address": 536871024,
+            "frame": 0,
+            "name": "SystemCoreClock",
+            "size": 4,
+            "type": 2
+        }
+    ],
+    "tx_block_pool.h": [
+        {
+            "address": 536874452,
+            "frame": 0,
+            "name": "_tx_block_pool_created_ptr",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536874448,
+            "frame": 0,
+            "name": "_tx_block_pool_created_count",
+            "size": 4,
+            "type": 2
+        }
+    ],
+    "tx_byte_pool.h": [
+        {
+            "address": 536874444,
+            "frame": 0,
+            "name": "_tx_byte_pool_created_ptr",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536874440,
+            "frame": 0,
+            "name": "_tx_byte_pool_created_count",
+            "size": 4,
+            "type": 2
+        }
+    ],
+    "tx_event_flags.h": [
+        {
+            "address": 536874468,
+            "frame": 0,
+            "name": "_tx_event_flags_created_ptr",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536874464,
+            "frame": 0,
+            "name": "_tx_event_flags_created_count",
+            "size": 4,
+            "type": 2
+        }
+    ],
+    "tx_initialize_high_level.c": [
+        {
+            "address": 536874436,
+            "frame": 0,
+            "name": "_tx_initialize_unused_memory",
+            "size": 4,
+            "type": 2
+        }
+    ],
+    "tx_mutex.h": [
+        {
+            "address": 536874460,
+            "frame": 0,
+            "name": "_tx_mutex_created_ptr",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536874456,
+            "frame": 0,
+            "name": "_tx_mutex_created_count",
+            "size": 4,
+            "type": 2
+        }
+    ],
+    "tx_queue.h": [
+        {
+            "address": 536874476,
+            "frame": 0,
+            "name": "_tx_queue_created_ptr",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536874472,
+            "frame": 0,
+            "name": "_tx_queue_created_count",
+            "size": 4,
+            "type": 2
+        }
+    ],
+    "tx_semaphore.h": [
+        {
+            "address": 536874484,
+            "frame": 0,
+            "name": "_tx_semaphore_created_ptr",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536874480,
+            "frame": 0,
+            "name": "_tx_semaphore_created_count",
+            "size": 4,
+            "type": 2
+        }
+    ],
+    "tx_thread_initialize.c": [
+        {
+            "address": 536874500,
+            "frame": 0,
+            "name": "_tx_thread_priority_list",
+            "size": 128,
+            "type": 2
+        },
+        {
+            "address": 536874496,
+            "frame": 0,
+            "name": "_tx_thread_preempt_disable",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536874492,
+            "frame": 0,
+            "name": "_tx_thread_mutex_release",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536874652,
+            "frame": 0,
+            "name": "_tx_thread_system_stack_ptr",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536874628,
+            "frame": 0,
+            "name": "_tx_thread_highest_priority",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536874648,
+            "frame": 0,
+            "name": "_tx_thread_current_ptr",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536874640,
+            "frame": 0,
+            "name": "_tx_thread_created_ptr",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536874632,
+            "frame": 0,
+            "name": "_tx_thread_priority_maps",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536874644,
+            "frame": 0,
+            "name": "_tx_thread_execute_ptr",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536874636,
+            "frame": 0,
+            "name": "_tx_thread_created_count",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536871028,
+            "frame": 0,
+            "name": "_tx_thread_system_state",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536874488,
+            "frame": 0,
+            "name": "_tx_build_options",
+            "size": 4,
+            "type": 2
+        }
+    ],
+    "tx_timer_initialize.c": [
+        {
+            "address": 536874656,
+            "frame": 0,
+            "name": "_tx_timer_time_slice",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536875696,
+            "frame": 0,
+            "name": "_tx_timer_thread",
+            "size": 176,
+            "type": 2
+        },
+        {
+            "address": 536875876,
+            "frame": 0,
+            "name": "_tx_timer_created_count",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536875888,
+            "frame": 0,
+            "name": "_tx_timer_current_ptr",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536875880,
+            "frame": 0,
+            "name": "_tx_timer_created_ptr",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536875884,
+            "frame": 0,
+            "name": "_tx_timer_expired",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536876028,
+            "frame": 0,
+            "name": "_tx_timer_expired_time_slice",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536875872,
+            "frame": 0,
+            "name": "_tx_timer_expired_timer_ptr",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536875900,
+            "frame": 0,
+            "name": "_tx_timer_list",
+            "size": 128,
+            "type": 2
+        },
+        {
+            "address": 536875892,
+            "frame": 0,
+            "name": "_tx_timer_list_end",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536876032,
+            "frame": 0,
+            "name": "_tx_timer_system_clock",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536874660,
+            "frame": 0,
+            "name": "_tx_timer_thread_stack_area",
+            "size": 1024,
+            "type": 2
+        },
+        {
+            "address": 536875896,
+            "frame": 0,
+            "name": "_tx_timer_list_start",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536875688,
+            "frame": 0,
+            "name": "_tx_timer_stack_size",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536875684,
+            "frame": 0,
+            "name": "_tx_timer_priority",
+            "size": 4,
+            "type": 2
+        },
+        {
+            "address": 536875692,
+            "frame": 0,
+            "name": "_tx_timer_stack_start",
+            "size": 4,
+            "type": 2
+        }
+    ]
+}
